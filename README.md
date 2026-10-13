@@ -6,13 +6,13 @@ Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfal�
 
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
 - **QR masa menüsü:** `/masa/:masaNo` (ör. `/masa/5`) — masaya özel menü, "Garson Çağır" ve arama/filtreleme
-- **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma, QR kod üretimi (PNG indirme + toplu yazdırma)
+- **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
 - **Veri katmanı:** Supabase (menü okuma, yazma ve auth)
 
 ## Teknolojiler
 
-Vite · React 18 · TypeScript · Tailwind CSS · React Router · Supabase · qrcode · lucide-react
+Vite · React 18 · TypeScript · Tailwind CSS · React Router · Supabase · lucide-react
 
 ## Kurulum
 

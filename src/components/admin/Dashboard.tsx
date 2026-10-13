@@ -9,7 +9,6 @@ import {
   LogOut,
   PackageCheck,
   Plus,
-  QrCode as QrCodeIcon,
   RefreshCw,
   ShoppingBag,
   UtensilsCrossed,
@@ -17,14 +16,13 @@ import {
 import ProductRow from "./ProductRow";
 import AddProductModal from "./AddProductModal";
 import ConfirmDialog from "./ConfirmDialog";
-import QrCodes from "./QrCodes";
 import GalleryEditor from "./GalleryEditor";
 import { useToast } from "../Toast";
 import { useMenu } from "../../hooks/useMenu";
 import { signOut } from "../../lib/auth";
 import type { Product } from "../../lib/types";
 
-type View = "products" | "qr" | "gallery";
+type View = "products" | "gallery";
 
 export default function Dashboard() {
   const toast = useToast();
@@ -129,7 +127,6 @@ export default function Dashboard() {
             [
               { id: "products", label: "Ürünler", icon: ShoppingBag },
               { id: "gallery", label: "Galeri", icon: Images },
-              { id: "qr", label: "QR Kodlar", icon: QrCodeIcon },
             ] as const
           ).map(({ id, label, icon: Icon }) => {
             const isActive = view === id;
@@ -153,9 +150,7 @@ export default function Dashboard() {
           })}
         </div>
 
-        {view === "qr" ? (
-          <QrCodes />
-        ) : view === "gallery" ? (
+        {view === "gallery" ? (
           <GalleryEditor />
         ) : (
           <>
