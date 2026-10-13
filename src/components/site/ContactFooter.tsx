@@ -1,4 +1,4 @@
-import { Clock, Dices, Instagram, Mail, MapPin, Phone, QrCode } from "lucide-react";
+import { Clock, Dices, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import Reveal from "../Reveal";
 
 const ADDRESS = "Müftüselim Mahallesi, Ahmet Hamdi Şam Caddesi";
@@ -28,6 +28,9 @@ export default function ContactFooter() {
             <p className="mt-4 text-sm leading-relaxed text-cream-200/75 sm:text-base">
               Kahve, çay, tatlı, nargile ve okey — hepsi aynı çatı altında.
               Masa ve nargile rezervasyonları için bizi arayabilirsiniz.
+            </p>
+            <p className="mt-4 font-serif text-lg italic leading-relaxed text-cream-100/90 sm:text-xl">
+              Bir çayımızı için, tanışalım — kapımız herkese açık.
             </p>
           </div>
         </Reveal>
@@ -122,11 +125,6 @@ export default function ContactFooter() {
                 <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-cream-200/65">
                   <Dices className="mt-0.5 h-3.5 w-3.5 shrink-0 text-caramel-400" />
                   Okey salonumuzda masa rezervasyonu önerilir.
-                </p>
-                <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-cream-200/65">
-                  <QrCode className="mt-0.5 h-3.5 w-3.5 shrink-0 text-caramel-400" />
-                  Masalardaki QR kodu okutarak menüyü telefonunuzdan
-                  inceleyebilirsiniz.
                 </p>
               </div>
             </div>

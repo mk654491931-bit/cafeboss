@@ -201,6 +201,13 @@ export default function MenuSection({
             ))}
           </div>
         )}
+
+        {!loading && !error && filtered.length > 0 && (
+          <p className="mt-10 text-center font-serif text-base italic leading-relaxed text-espresso-800/70">
+            Aklınızdaki bir şey menüde görünmüyorsa garsona sorun; birlikte bir
+            çaresine bakarız.
+          </p>
+        )}
       </div>
     </section>
   );

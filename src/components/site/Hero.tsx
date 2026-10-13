@@ -59,6 +59,14 @@ export default function Hero() {
             </a>
           </div>
 
+          <p
+            className="reveal is-visible mt-6 max-w-xl font-serif text-base italic leading-relaxed text-cream-200/75 sm:text-lg"
+            style={{ transitionDelay: "280ms" }}
+          >
+            Acele yok — çayınız demlikte, kahveniz fincanda, sohbetiniz tam
+            kaldığı yerden devam eder.
+          </p>
+
           <ul
             className="reveal is-visible mt-12 flex flex-wrap gap-x-8 gap-y-3 border-t border-cream-100/15 pt-6"
             style={{ transitionDelay: "320ms" }}

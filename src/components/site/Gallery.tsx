@@ -46,6 +46,12 @@ export default function Gallery() {
             </Reveal>
           ))}
         </div>
+
+        {shots.length > 0 && (
+          <p className="mt-10 text-center font-serif text-base italic leading-relaxed text-espresso-800/70">
+            Her kare, burada geçirilmiş güzel bir saatten bir hatıra.
+          </p>
+        )}
       </div>
     </section>
   );

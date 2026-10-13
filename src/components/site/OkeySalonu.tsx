@@ -1,4 +1,4 @@
-import { Armchair, Clock, Dices, Phone } from "lucide-react";
+import { Armchair, Coffee, Dices, Phone } from "lucide-react";
 import Reveal from "../Reveal";
 
 const FEATURES = [
@@ -13,9 +13,9 @@ const FEATURES = [
     text: "Klimalı, geniş oturma alanlı ve sigara içilmeyen salon.",
   },
   {
-    icon: Clock,
-    title: "Saatlik Kullanım",
-    text: "Saatlik ücret; yoğun saatlerde rezervasyon önerilir.",
+    icon: Coffee,
+    title: "Dostlarla Keyifli Mola",
+    text: "Acele yok — kahvenizi yudumlayın, taşlarınızı çekin, sohbetiniz bol olsun.",
   },
 ];
 
@@ -47,6 +47,10 @@ export default function OkeySalonu() {
                     Menüyü Gör
                   </a>
                 </div>
+                <p className="mt-6 max-w-xl font-serif text-base italic leading-relaxed text-cream-200/75 sm:text-lg">
+                  Kalabalık akşamlarda gelmeden bir telefon etmeniz yeter;
+                  masanızı hazır tutarız.
+                </p>
               </div>
 
               <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">

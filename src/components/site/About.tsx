@@ -56,6 +56,10 @@ export default function About() {
               mutfağımızda hazırlıyor, ocakbaşında nargile keyfini ve okey
               salonumuzda dost sohbetlerini ağırlıyoruz.
             </p>
+            <p className="mt-4 font-serif text-lg italic leading-relaxed text-espresso-700 sm:text-xl">
+              Kapıdan girdiğinizde sizi bir fincan değil, koca bir mola
+              bekliyor.
+            </p>
           </div>
         </Reveal>
 
