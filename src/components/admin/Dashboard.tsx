@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Coffee,
   ExternalLink,
+  Images,
   Loader2,
   LogOut,
   PackageCheck,
@@ -17,12 +18,13 @@ import ProductRow from "./ProductRow";
 import AddProductModal from "./AddProductModal";
 import ConfirmDialog from "./ConfirmDialog";
 import QrCodes from "./QrCodes";
+import GalleryEditor from "./GalleryEditor";
 import { useToast } from "../Toast";
 import { useMenu } from "../../hooks/useMenu";
 import { signOut } from "../../lib/auth";
 import type { Product } from "../../lib/types";
 
-type View = "products" | "qr";
+type View = "products" | "qr" | "gallery";
 
 export default function Dashboard() {
   const toast = useToast();
@@ -33,6 +35,7 @@ export default function Dashboard() {
     reload,
     addProduct,
     changePrice,
+    changeImage,
     changeAvailability,
     removeProduct,
   } = useMenu();
@@ -125,6 +128,7 @@ export default function Dashboard() {
           {(
             [
               { id: "products", label: "Ürünler", icon: ShoppingBag },
+              { id: "gallery", label: "Galeri", icon: Images },
               { id: "qr", label: "QR Kodlar", icon: QrCodeIcon },
             ] as const
           ).map(({ id, label, icon: Icon }) => {
@@ -151,6 +155,8 @@ export default function Dashboard() {
 
         {view === "qr" ? (
           <QrCodes />
+        ) : view === "gallery" ? (
+          <GalleryEditor />
         ) : (
           <>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
@@ -232,6 +238,7 @@ export default function Dashboard() {
                         key={product.id}
                         product={product}
                         onPrice={changePrice}
+                        onImage={changeImage}
                         onAvailability={changeAvailability}
                         onDelete={setPendingDelete}
                       />

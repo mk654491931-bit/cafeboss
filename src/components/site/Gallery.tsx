@@ -1,45 +1,10 @@
 import Reveal from "../Reveal";
-
-interface Shot {
-  src: string;
-  alt: string;
-  caption: string;
-}
-
-const SHOTS: Shot[] = [
-  {
-    src: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=80",
-    alt: "Ahşap masalı sıcak kafe iç mekânı",
-    caption: "İç Mekân",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=80",
-    alt: "Latte art ile süslenmiş fincan",
-    caption: "İmza Latte",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&w=900&q=80",
-    alt: "Kahve yanında taze sandviç",
-    caption: "Atıştırmalıklar",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=900&q=80",
-    alt: "Cam bardakta filtre kahve",
-    caption: "Filtre Demleme",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=900&q=80",
-    alt: "Kafe barında kahve ekipmanları",
-    caption: "Barista Tezgâhı",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80",
-    alt: "Taze pişmiş hamur işleri",
-    caption: "Tatlı Vitrini",
-  },
-];
+import { useGallery } from "../../hooks/useGallery";
 
 export default function Gallery() {
+  const { images } = useGallery();
+  const shots = images.filter((image) => image.src.trim().length > 0);
+
   return (
     <section id="galeri" className="section bg-cream-100">
       <div className="container-page">
@@ -57,16 +22,16 @@ export default function Gallery() {
         </Reveal>
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-          {SHOTS.map((shot, index) => (
+          {shots.map((shot, index) => (
             <Reveal
-              key={shot.src}
+              key={shot.id}
               variant={index % 3 === 0 ? "left" : index % 3 === 1 ? "up" : "right"}
               delay={(index % 3) * 90}
             >
               <figure className="group relative aspect-square overflow-hidden rounded-2xl bg-espresso-700/10 shadow-soft">
                 <img
                   src={shot.src}
-                  alt={shot.alt}
+                  alt={shot.alt || shot.caption}
                   loading="lazy"
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   onError={(event) => {

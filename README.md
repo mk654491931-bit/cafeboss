@@ -6,7 +6,7 @@ Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfal�
 
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
 - **QR masa menüsü:** `/masa/:masaNo` (ör. `/masa/5`) — masaya özel menü, "Garson Çağır" ve arama/filtreleme
-- **Admin paneli:** `/admin` — ürün ekleme/düzenleme, fiyat ve stok güncelleme, QR kod üretimi (PNG indirme + toplu yazdırma)
+- **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma, QR kod üretimi (PNG indirme + toplu yazdırma)
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
 - **Veri katmanı:** Supabase (menü okuma, yazma ve auth)
 
@@ -33,7 +33,9 @@ GITHUB_TOKEN=...
 
 Freebuff'te bu anahtarlar **Keys / API keys** sekmesine `GITHUB_TOKEN` adıyla girilir.
 
-Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalıştırarak tabloları ve başlangıç verisini oluştur.
+Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalıştırarak `products` / `site_content` tablolarını, `site-images` görsel deposunu ve RLS politikalarını oluştur.
+
+> Supabase tanımlı değilken galeri ("Mekândan Kareler") tarayıcıdaki yerel kopyayı kullanır, böylece panel dışında da önizlemede çalışır; ürün ve galeri kalıcılığı için Supabase anahtarları gerekir.
 
 ## Komutlar
 

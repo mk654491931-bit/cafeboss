@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
+import ImageField from "./ImageField";
 import { CATEGORIES, type ProductInput } from "../../lib/types";
 
 interface Props {
@@ -42,8 +43,8 @@ export default function AddProductModal({ onClose, onSubmit }: Props) {
     }
 
     const image = form.image_url.trim();
-    if (image && !/^https?:\/\//i.test(image)) {
-      next.image_url = "Görsel adresi http:// veya https:// ile başlamalı.";
+    if (image && !/^(data:image\/|https?:\/\/)/i.test(image)) {
+      next.image_url = "Geçerli bir görsel seçin veya http(s) bağlantısı girin.";
     }
 
     return next;
@@ -183,24 +184,16 @@ export default function AddProductModal({ onClose, onSubmit }: Props) {
               placeholder="Örn. Çikolatamsı notalar, kadifemsi süt köpüğü."
               className="input resize-none"
             />
-          </div>
-
-          <div>
-            <label htmlFor="product-image" className="field-label">
-              Görsel URL
-            </label>
-            <input
-              id="product-image"
-              type="url"
+          </div>          <div>
+            <ImageField
               value={form.image_url}
-              onChange={(event) => update("image_url", event.target.value)}
-              placeholder="https://…"
-              className="input"
+              onChange={(value) => update("image_url", value)}
+              label="Ürün Fotoğrafı"
+              hint="Cihazınızdan yükleyin, galeriden seçin veya bir bağlantı girin."
+              showGalleryPicker
             />
             {errors.image_url && (
-              <p className="mt-1.5 text-xs text-espresso-600">
-                {errors.image_url}
-              </p>
+              <p className="mt-1.5 text-xs text-espresso-600">{errors.image_url}</p>
             )}
           </div>
 

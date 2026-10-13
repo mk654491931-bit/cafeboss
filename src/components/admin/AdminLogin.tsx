@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Coffee, Eye, EyeOff, Loader2, Lock } from "lucide-react";
-import { signIn } from "../../lib/auth";
+import { ADMIN_USERNAME, resolveAdminEmail, signIn } from "../../lib/auth";
 import { isSupabaseConfigured, configHint } from "../../lib/supabase";
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,15 +15,15 @@ export default function AdminLogin() {
     event.preventDefault();
     if (submitting) return;
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password) {
-      setError("E-posta ve şifre alanlarını doldurun.");
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername || !password) {
+      setError("Kullanıcı adı ve şifre alanlarını doldurun.");
       return;
     }
 
     setSubmitting(true);
     setError(null);
-    const message = await signIn(trimmedEmail, password);
+    const message = await signIn(resolveAdminEmail(trimmedUsername), password);
     setSubmitting(false);
     if (message) setError(message);
   }
@@ -65,16 +65,16 @@ export default function AdminLogin() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
             <div>
-              <label htmlFor="admin-email" className="field-label">
-                E-posta
+              <label htmlFor="admin-username" className="field-label">
+                Kullanıcı Adı
               </label>
               <input
-                id="admin-email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="admin@bosscafe.com"
+                id="admin-username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder={ADMIN_USERNAME}
                 className="input"
                 required
               />

@@ -1,15 +1,80 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Camera, Check, Loader2, Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "../../lib/format";
 import { categoryIcon } from "../../lib/categoryIcons";
+import GalleryPicker from "./GalleryPicker";
 import { useToast } from "../Toast";
 import type { Product } from "../../lib/types";
 
 interface Props {
   product: Product;
   onPrice: (id: string, price: number) => Promise<string | null>;
+  onImage: (id: string, imageUrl: string) => Promise<string | null>;
   onAvailability: (id: string, isAvailable: boolean) => Promise<string | null>;
   onDelete: (product: Product) => void;
+}
+
+function PhotoPicker({
+  product,
+  onImage,
+}: {
+  product: Product;
+  onImage: Props["onImage"];
+}) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const CategoryIcon = categoryIcon(product.category);
+
+  async function handleSelect(src: string) {
+    setPicking(false);
+    if (!src || src === product.image_url || busy) return;
+    setBusy(true);
+    const message = await onImage(product.id, src);
+    setBusy(false);
+    if (message) toast.error(message);
+    else toast.success(`${product.name} fotoğrafı güncellendi.`);
+  }
+
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-espresso-700/8 text-caramel-600">
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt=""
+            className="h-full w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <CategoryIcon className="h-5 w-5" />
+        )}
+      </span>
+      <button
+        type="button"
+        onClick={() => setPicking(true)}
+        disabled={busy}
+        aria-label={`${product.name} fotoğrafını değiştir`}
+        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-espresso-700 text-cream-100 shadow-soft transition hover:bg-espresso-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+      >
+        {busy ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Camera className="h-3 w-3" />
+        )}
+      </button>
+      {picking && (
+        <GalleryPicker
+          allowUpload
+          title="Ürün Fotoğrafı"
+          onClose={() => setPicking(false)}
+          onSelect={(src) => void handleSelect(src)}
+        />
+      )}
+    </div>
+  );
 }
 
 function PriceEditor({
@@ -180,26 +245,17 @@ function AvailabilityToggle({
   );
 }
 
-export default function ProductRow({ product, onPrice, onAvailability, onDelete }: Props) {
-  const CategoryIcon = categoryIcon(product.category);
-
+export default function ProductRow({
+  product,
+  onPrice,
+  onImage,
+  onAvailability,
+  onDelete,
+}: Props) {
   return (
     <div className="card p-4 transition hover:shadow-lift md:grid md:grid-cols-[minmax(0,2.4fr)_auto_auto_auto] md:items-center md:gap-4">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-espresso-700/8 text-caramel-600">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt=""
-              className="h-full w-full object-cover"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
-          ) : (
-            <CategoryIcon className="h-5 w-5" />
-          )}
-        </span>
+        <PhotoPicker product={product} onImage={onImage} />
         <div className="min-w-0">
           <p className="truncate font-medium text-espresso-800">{product.name}</p>
           <p className="truncate text-xs text-espresso-800/55">

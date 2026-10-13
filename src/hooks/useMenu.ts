@@ -80,6 +80,31 @@ export function useMenu() {
     [],
   );
 
+  const changeImage = useCallback(
+    async (id: string, imageUrl: string): Promise<string | null> => {
+      const previous = productsRef.current.find((p) => p.id === id);
+      if (!previous) return "Ürün bulunamadı.";
+      if (previous.image_url === imageUrl) return null;
+
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, image_url: imageUrl } : p)),
+      );
+
+      try {
+        await api.updateProductImage(id, imageUrl || null);
+        return null;
+      } catch (caught) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, image_url: previous.image_url } : p,
+          ),
+        );
+        return toTurkishError(caught);
+      }
+    },
+    [],
+  );
+
   const changeAvailability = useCallback(
     async (id: string, isAvailable: boolean): Promise<string | null> => {
       const previous = productsRef.current.find((p) => p.id === id);
@@ -133,6 +158,7 @@ export function useMenu() {
     reload,
     addProduct,
     changePrice,
+    changeImage,
     changeAvailability,
     removeProduct,
   };

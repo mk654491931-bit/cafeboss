@@ -88,6 +88,23 @@ export async function updateProductPrice(
   }
 }
 
+/** Persists a product photo (uploaded file URL or data URL). */
+export async function updateProductImage(
+  id: string,
+  imageUrl: string | null,
+): Promise<void> {
+  const { data, error } = await client()
+    .from("products")
+    .update({ image_url: imageUrl })
+    .eq("id", id)
+    .select("id");
+
+  if (error) fail(error);
+  if (!data || data.length === 0) {
+    throw new Error("Fotoğraf güncellenemedi: kayıt bulunamadı ya da yetkiniz yok.");
+  }
+}
+
 /** Flips the Aktif / Tükendi state. */
 export async function updateProductAvailability(
   id: string,
