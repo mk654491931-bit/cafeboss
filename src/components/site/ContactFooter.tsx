@@ -92,12 +92,12 @@ export default function ContactFooter() {
                       Sosyal
                     </p>
                     <a
-                      href="https://www.instagram.com/bosscafe"
+                      href="https://www.instagram.com/cafe_boss04"
                       target="_blank"
                       rel="noreferrer"
                       className="mt-1 block text-sm text-cream-100 transition hover:text-caramel-400"
                     >
-                      @bosscafe
+                      @cafe_boss04
                     </a>
                   </div>
                 </li>

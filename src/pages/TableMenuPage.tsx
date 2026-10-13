@@ -84,12 +84,12 @@ export default function TableMenuPage() {
           <p>
             0531 346 77 30 ·{" "}
             <a
-              href="https://www.instagram.com/bosscafe"
+              href="https://www.instagram.com/cafe_boss04"
               target="_blank"
               rel="noreferrer"
               className="transition hover:text-caramel-600"
             >
-              @bosscafe
+              @cafe_boss04
             </a>
           </p>
         </div>
