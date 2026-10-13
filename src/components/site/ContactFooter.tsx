@@ -1,8 +1,11 @@
 import { Clock, Dices, Instagram, Mail, MapPin, Phone, QrCode } from "lucide-react";
 import Reveal from "../Reveal";
 
-const MAP_SRC =
-  "https://maps.google.com/maps?q=Ele%C5%9Fkirt%20Merkez%20T%C3%BCrkiye&t=&z=14&ie=UTF8&iwloc=&output=embed";
+const ADDRESS = "Müftüselim Mahallesi, Ahmet Hamdi Şam Caddesi";
+const MAP_QUERY =
+  "M%C3%BCft%C3%BCselim%20Mahallesi%20Ahmet%20Hamdi%20%C5%9Eam%20Caddesi%20Ele%C5%9Fkirt%20A%C4%9Fr%C4%B1";
+const MAP_SRC = `https://maps.google.com/maps?q=${MAP_QUERY}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+const MAP_LINK = `https://maps.google.com/?q=${MAP_QUERY}`;
 
 const HOURS = [
   { days: "Pazartesi – Cuma", time: "08:00 – 23:30" },
@@ -42,9 +45,9 @@ export default function ContactFooter() {
                       Adres
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-cream-100">
-                      Cumhuriyet Caddesi No: 42/A
+                      {ADDRESS}
                       <br />
-                      Merkez / Eleşkirt
+                      Eleşkirt / Ağrı
                     </p>
                   </div>
                 </li>
@@ -57,10 +60,10 @@ export default function ContactFooter() {
                       Telefon
                     </p>
                     <a
-                      href="tel:+904722153040"
+                      href="tel:+905313467730"
                       className="mt-1 block text-sm text-cream-100 transition hover:text-caramel-400"
                     >
-                      +90 472 215 30 40
+                      0531 346 77 30
                     </a>
                   </div>
                 </li>
@@ -134,7 +137,7 @@ export default function ContactFooter() {
               <div className="flex items-center justify-between gap-4 border-b border-cream-100/10 px-6 py-4">
                 <p className="font-serif text-lg text-cream-50">Bizi Bulun</p>
                 <a
-                  href="https://maps.google.com/?q=Eleşkirt"
+                  href={MAP_LINK}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs font-semibold uppercase tracking-wider text-caramel-400 transition hover:text-caramel-300"

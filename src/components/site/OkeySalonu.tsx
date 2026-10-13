@@ -39,7 +39,7 @@ export default function OkeySalonu() {
                   bekliyor — dostlarınızla günün yorgunluğunu atın.
                 </p>
                 <div className="mt-7 flex flex-wrap gap-3">
-                  <a href="tel:+904722153040" className="btn btn-accent">
+                  <a href="tel:+905313467730" className="btn btn-accent">
                     <Phone className="h-4 w-4" />
                     Masa Rezervasyonu
                   </a>

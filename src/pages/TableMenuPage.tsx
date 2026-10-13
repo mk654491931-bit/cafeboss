@@ -43,7 +43,7 @@ export default function TableMenuPage() {
               Masa {table}
             </span>
             <a
-              href="tel:+904722153040"
+              href="tel:+905313467730"
               className="btn btn-outline btn-sm"
               aria-label="Garson çağırmak için bizi arayın"
             >
@@ -80,9 +80,9 @@ export default function TableMenuPage() {
 
       <footer className="border-t border-espresso-700/10 bg-cream-100 py-8">
         <div className="container-page flex flex-col items-center gap-2 text-center text-xs text-espresso-800/60 sm:flex-row sm:justify-between sm:text-left">
-          <p>Cumhuriyet Caddesi No: 42/A, Merkez / Eleşkirt</p>
+          <p>Müftüselim Mahallesi, Ahmet Hamdi Şam Caddesi, Eleşkirt / Ağrı</p>
           <p>
-            +90 472 215 30 40 ·{" "}
+            0531 346 77 30 ·{" "}
             <a
               href="https://www.instagram.com/bosscafe"
               target="_blank"
