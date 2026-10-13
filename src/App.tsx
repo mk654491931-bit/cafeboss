@@ -7,7 +7,6 @@ import {
   useLocation,
 } from "react-router-dom";
 import SitePage from "./pages/SitePage";
-import TableMenuPage from "./pages/TableMenuPage";
 import AdminPage from "./pages/AdminPage";
 import ScrollProgress from "./components/ScrollProgress";
 import BackToTop from "./components/BackToTop";
@@ -39,7 +38,6 @@ export default function App() {
         <BackToTop />
         <Routes>
           <Route path="/" element={<SitePage />} />
-          <Route path="/masa/:tableNo" element={<TableMenuPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

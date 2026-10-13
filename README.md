@@ -1,11 +1,10 @@
 # Boss Cafe
 
-Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfalık tanıtım sitesi, masaya özel QR menü ve admin panelinden menü/fiyat/stok yönetimi.
+Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfalık tanıtım sitesi ve admin panelinden menü/fiyat/stok yönetimi.
 
 ## Özellikler
 
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
-- **QR masa menüsü:** `/masa/:masaNo` (ör. `/masa/5`) — masaya özel menü, "Garson Çağır" ve arama/filtreleme
 - **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
 - **Veri katmanı:** Supabase (menü okuma, yazma ve auth)
@@ -63,5 +62,4 @@ bun run github:check  # GitHub bağlantısını doğrula
 | Rota | Açıklama |
 | --- | --- |
 | `/` | Tanıtım sitesi ve dijital menü |
-| `/masa/:masaNo` | Masaya özel QR menü |
 | `/admin` | Yönetim paneli |

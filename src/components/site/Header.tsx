@@ -71,12 +71,6 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <Link
-            to="/masa/1"
-            className="hidden items-center gap-1.5 rounded-full border border-espresso-700/20 px-3 py-2 text-xs font-semibold text-espresso-700 transition hover:bg-espresso-700/5 sm:inline-flex"
-          >
-            Masa Menüsü
-          </Link>
-          <Link
             to="/admin"
             className="btn btn-outline btn-sm hidden sm:inline-flex"
           >
@@ -120,13 +114,6 @@ export default function Header() {
               {item.label}
             </a>
           ))}
-          <Link
-            to="/masa/1"
-            onClick={() => setOpen(false)}
-            className="btn btn-outline btn-sm mt-2"
-          >
-            Masa Menüsü (QR)
-          </Link>
           <Link
             to="/admin"
             onClick={() => setOpen(false)}
