@@ -3,7 +3,6 @@ import {
   Coffee,
   Croissant,
   CupSoda,
-  Dices,
   GlassWater,
   Wind,
   type LucideIcon,
@@ -20,10 +19,10 @@ export function categoryIcon(category: string): LucideIcon {
       return Cake;
     case "Nargile":
       return Wind;
-    case "Kahvaltılıklar":
+    case "Yiyecekler":
       return Croissant;
-    case "Okey Salonu":
-      return Dices;
+    case "Soğuk İçecekler":
+      return CupSoda;
     case "Sıcak Kahveler":
     default:
       return Coffee;

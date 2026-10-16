@@ -4,8 +4,8 @@ export const CATEGORIES = [
   "Çaylar",
   "Tatlılar",
   "Nargile",
-  "Kahvaltılıklar",
-  "Okey Salonu",
+  "Yiyecekler",
+  "Soğuk İçecekler",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
