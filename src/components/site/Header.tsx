@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Coffee, Lock, Menu as MenuIcon, X } from "lucide-react";
+import { Lock, Menu as MenuIcon, X } from "lucide-react";
 import { useActiveSection, useScrolled } from "../../hooks/useScrollEffects";
 
 const NAV_ITEMS = [
@@ -27,23 +27,16 @@ export default function Header() {
       <div className="container-page flex h-16 items-center justify-between md:h-20">
         <a
           href="#top"
-          className="group flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-100"
+          aria-label="Boss Cafe ana sayfa"
+          className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-100"
         >
-          <span
-            className={`flex h-9 w-9 items-center justify-center rounded-xl bg-espresso-700 text-caramel-400 transition-all duration-300 group-hover:bg-espresso-800 ${
+          <img
+            src="/logo.svg"
+            alt="Boss Cafe"
+            className={`h-10 w-auto transition-all duration-300 md:h-12 ${
               scrolled ? "scale-95" : "scale-100"
             }`}
-          >
-            <Coffee className="h-5 w-5" />
-          </span>
-          <span className="flex flex-col leading-none">
-            <span className="font-serif text-lg font-semibold text-espresso-800">
-              Boss Cafe
-            </span>
-            <span className="text-[10px] uppercase tracking-[0.25em] text-espresso-500/80">
-              Kahve • Çay • Nargile • Okey
-            </span>
-          </span>
+          />
         </a>
 
         <nav
