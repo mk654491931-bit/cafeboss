@@ -33,6 +33,7 @@ export default function Dashboard() {
     reload,
     addProduct,
     changePrice,
+    changeCategory,
     changeImage,
     changeAvailability,
     removeProduct,
@@ -158,7 +159,8 @@ export default function Dashboard() {
               <div>
                 <h2 className="font-serif text-xl text-espresso-800">Ürünler</h2>
                 <p className="text-sm text-espresso-800/60">
-                  Fiyata tıklayarak düzenleyin, anahtarla durumu değiştirin.
+                  Kategoriyi seçerek, fiyata tıklayarak ve anahtarla durumu
+                  değiştirin.
                 </p>
               </div>
               <button
@@ -233,6 +235,7 @@ export default function Dashboard() {
                         key={product.id}
                         product={product}
                         onPrice={changePrice}
+                        onCategory={changeCategory}
                         onImage={changeImage}
                         onAvailability={changeAvailability}
                         onDelete={setPendingDelete}

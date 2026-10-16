@@ -1,17 +1,69 @@
-import { useEffect, useRef, useState } from "react";
-import { Camera, Check, Loader2, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { Camera, Check, ChevronDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "../../lib/format";
 import { categoryIcon } from "../../lib/categoryIcons";
 import GalleryPicker from "./GalleryPicker";
 import { useToast } from "../Toast";
-import type { Product } from "../../lib/types";
+import { CATEGORIES, type Product } from "../../lib/types";
 
 interface Props {
   product: Product;
   onPrice: (id: string, price: number) => Promise<string | null>;
+  onCategory: (id: string, category: string) => Promise<string | null>;
   onImage: (id: string, imageUrl: string) => Promise<string | null>;
   onAvailability: (id: string, isAvailable: boolean) => Promise<string | null>;
   onDelete: (product: Product) => void;
+}
+
+function CategoryEditor({
+  product,
+  onCategory,
+}: {
+  product: Product;
+  onCategory: Props["onCategory"];
+}) {
+  const toast = useToast();
+  const [saving, setSaving] = useState(false);
+
+  // Keep legacy categories (saved before a rename) selectable until reassigned.
+  const options = (CATEGORIES as readonly string[]).includes(product.category)
+    ? [...CATEGORIES]
+    : [product.category, ...CATEGORIES];
+
+  async function handleChange(event: ChangeEvent<HTMLSelectElement>) {
+    const next = event.target.value;
+    if (next === product.category || saving) return;
+
+    setSaving(true);
+    const message = await onCategory(product.id, next);
+    setSaving(false);
+
+    if (message) toast.error(message);
+    else toast.success(`${product.name} kategorisi "${next}" olarak güncellendi.`);
+  }
+
+  return (
+    <span className="relative inline-flex items-center">
+      <select
+        value={product.category}
+        onChange={(event) => void handleChange(event)}
+        disabled={saving}
+        aria-label={`${product.name} kategorisi`}
+        className="cursor-pointer appearance-none truncate rounded-md border border-espresso-700/15 bg-white/70 py-0.5 pl-2 pr-6 text-xs font-semibold text-espresso-700 transition hover:border-espresso-700/35 focus:outline-none focus:ring-2 focus:ring-caramel-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {options.map((category) => (
+          <option key={category} value={category}>
+            {category}
+          </option>
+        ))}
+      </select>
+      {saving ? (
+        <Loader2 className="pointer-events-none absolute right-1.5 h-3 w-3 animate-spin text-caramel-600" />
+      ) : (
+        <ChevronDown className="pointer-events-none absolute right-1.5 h-3 w-3 text-espresso-600/70" />
+      )}
+    </span>
+  );
 }
 
 function PhotoPicker({
@@ -248,6 +300,7 @@ function AvailabilityToggle({
 export default function ProductRow({
   product,
   onPrice,
+  onCategory,
   onImage,
   onAvailability,
   onDelete,
@@ -258,10 +311,12 @@ export default function ProductRow({
         <PhotoPicker product={product} onImage={onImage} />
         <div className="min-w-0">
           <p className="truncate font-medium text-espresso-800">{product.name}</p>
-          <p className="truncate text-xs text-espresso-800/55">
-            {product.category}
-            {product.description ? ` · ${product.description}` : ""}
-          </p>
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-espresso-800/55">
+            <CategoryEditor product={product} onCategory={onCategory} />
+            {product.description && (
+              <span className="truncate">· {product.description}</span>
+            )}
+          </div>
         </div>
       </div>
 

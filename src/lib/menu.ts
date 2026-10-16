@@ -88,6 +88,25 @@ export async function updateProductPrice(
   }
 }
 
+/** Persists a category change. Throws when the row was not writable. */
+export async function updateProductCategory(
+  id: string,
+  category: string,
+): Promise<void> {
+  const { data, error } = await client()
+    .from("products")
+    .update({ category })
+    .eq("id", id)
+    .select("id");
+
+  if (error) fail(error);
+  if (!data || data.length === 0) {
+    throw new Error(
+      "Kategori güncellenemedi: kayıt bulunamadı ya da yetkiniz yok.",
+    );
+  }
+}
+
 /** Persists a product photo (uploaded file URL or data URL). */
 export async function updateProductImage(
   id: string,
