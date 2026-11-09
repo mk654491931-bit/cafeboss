@@ -39,6 +39,13 @@ Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalışt�
 >
 > Aynı durumda `/admin` yerel önizleme oturumuyla açılır (kullanıcı adı `admin`, şifre `admin`) ve kasa kayıtları tarayıcıda saklanır. Sipariş ekranı, Supabase menüsü bağlanana kadar örnek menüyle çalışır. Supabase anahtarları tanımlandığında gerçek menü ve Supabase Auth otomatik olarak devreye girer; kasa verileri cihaz bazlı kalır.
 
+### Veritabanı dayanıklılığı
+
+- Ücretsiz Supabase projeleri, 7 gün boyunca yeterli veritabanı etkinliği olmazsa duraklatılır. Bu bir şema veya migration sorunu değildir; proje duraklatıldıysa Supabase panelinden **Resume project** denmelidir. Kalıcı garanti için Supabase Pro gerekir.
+- `api/keepalive.js`, Vercel Cron ile günde bir kez Supabase'e üç hafif okuma isteği gönderir. Vercel'de Supabase URL ve anon anahtarı tanımlıysa projenin hareketsizlik nedeniyle duraklatılmasını önlemeye yardımcı olur.
+- Okuma istekleri geçici ağ/`429`/`5xx` hatalarında otomatik olarak yeniden denenir; yazma işlemlerinden önce admin oturumu tazelenir.
+- Mevcut `supabase/schema.sql` tabloları, RLS politikalarını ve görsel deposunu oluşturur; bu düzeltme için ek bir migration dosyası gerekmez.
+
 ## Komutlar
 
 ```bash

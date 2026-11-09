@@ -21,6 +21,7 @@ export function useMenu() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const productsRef = useRef<Product[]>([]);
+  const lastLoadedAtRef = useRef(0);
 
   useEffect(() => {
     productsRef.current = products;
@@ -33,6 +34,7 @@ export function useMenu() {
       const rows = await api.fetchProducts();
       setProducts(rows);
       productsRef.current = rows;
+      lastLoadedAtRef.current = Date.now();
     } catch (caught) {
       setError(toTurkishError(caught));
     } finally {
@@ -42,6 +44,27 @@ export function useMenu() {
 
   useEffect(() => {
     void reload();
+  }, [reload]);
+
+  // A sleeping phone or a temporary network drop should recover without
+  // forcing the visitor to refresh the whole page.
+  useEffect(() => {
+    const refreshIfStale = () => {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastLoadedAtRef.current > 60_000
+      ) {
+        void reload();
+      }
+    };
+    const handleOnline = () => void reload();
+
+    document.addEventListener("visibilitychange", refreshIfStale);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshIfStale);
+      window.removeEventListener("online", handleOnline);
+    };
   }, [reload]);
 
   const addProduct = useCallback(

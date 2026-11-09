@@ -1,4 +1,4 @@
-import { configHint, supabase } from "./supabase";
+import { authenticatedClient, configHint, supabase } from "./supabase";
 import { toTurkishError } from "./errors";
 import type { Product, ProductInput } from "./types";
 
@@ -54,7 +54,8 @@ export async function fetchProducts(): Promise<Product[]> {
 
 /** Inserts a new menu item and returns the created row. */
 export async function createProduct(input: ProductInput): Promise<Product> {
-  const { data, error } = await client()
+  const db = await authenticatedClient();
+  const { data, error } = await db
     .from("products")
     .insert({
       name: input.name,
@@ -76,7 +77,8 @@ export async function updateProductPrice(
   id: string,
   price: number,
 ): Promise<void> {
-  const { data, error } = await client()
+  const db = await authenticatedClient();
+  const { data, error } = await db
     .from("products")
     .update({ price })
     .eq("id", id)
@@ -93,7 +95,8 @@ export async function updateProductCategory(
   id: string,
   category: string,
 ): Promise<void> {
-  const { data, error } = await client()
+  const db = await authenticatedClient();
+  const { data, error } = await db
     .from("products")
     .update({ category })
     .eq("id", id)
@@ -112,7 +115,8 @@ export async function updateProductImage(
   id: string,
   imageUrl: string | null,
 ): Promise<void> {
-  const { data, error } = await client()
+  const db = await authenticatedClient();
+  const { data, error } = await db
     .from("products")
     .update({ image_url: imageUrl })
     .eq("id", id)
@@ -129,7 +133,8 @@ export async function updateProductAvailability(
   id: string,
   isAvailable: boolean,
 ): Promise<void> {
-  const { data, error } = await client()
+  const db = await authenticatedClient();
+  const { data, error } = await db
     .from("products")
     .update({ is_available: isAvailable })
     .eq("id", id)
@@ -143,7 +148,8 @@ export async function updateProductAvailability(
 
 /** Removes a product permanently. */
 export async function deleteProduct(id: string): Promise<void> {
-  const { data, error } = await client()
+  const db = await authenticatedClient();
+  const { data, error } = await db
     .from("products")
     .delete()
     .eq("id", id)

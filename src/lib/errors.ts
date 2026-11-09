@@ -44,9 +44,34 @@ export function toTurkishError(error: unknown): string {
     return "Girilen değer biçimi geçersiz.";
   }
   if (
+    lower.includes("jwt expired") ||
+    lower.includes("invalid jwt") ||
+    lower.includes("token has expired") ||
+    lower.includes("refresh token") ||
+    lower.includes("auth session missing") ||
+    lower.includes("session missing")
+  ) {
+    return "Oturum süreniz doldu. Lütfen çıkış yapıp tekrar giriş yapın.";
+  }
+  if (
+    lower.includes("project is paused") ||
+    lower.includes("project has been paused") ||
+    lower.includes("project is inactive") ||
+    lower.includes("database is not available") ||
+    lower.includes("service unavailable") ||
+    message.includes("503")
+  ) {
+    return "Veritabanı şu anda yanıt vermiyor. Supabase projesi duraklatılmış olabilir; panelden Resume project deyin ve birkaç saniye sonra tekrar deneyin.";
+  }
+  if (
     lower.includes("failed to fetch") ||
+    lower.includes("fetch failed") ||
+    lower.includes("load failed") ||
     lower.includes("networkerror") ||
-    lower.includes("network request failed")
+    lower.includes("network request failed") ||
+    lower.includes("econnreset") ||
+    lower.includes("etimedout") ||
+    lower.includes("enotfound")
   ) {
     return "Bağlantı hatası. İnternet bağlantınızı kontrol edip tekrar deneyin.";
   }

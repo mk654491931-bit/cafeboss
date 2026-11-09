@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { authenticatedClient, supabase } from "./supabase";
 
 export interface GalleryImage {
   id: string;
@@ -125,7 +125,8 @@ export async function saveGallery(images: GalleryImage[]): Promise<void> {
 
   if (!supabase) return;
 
-  const { error } = await supabase
+  const db = await authenticatedClient();
+  const { error } = await db
     .from("site_content")
     .upsert({ key: CONTENT_KEY, value: images }, { onConflict: "key" });
 

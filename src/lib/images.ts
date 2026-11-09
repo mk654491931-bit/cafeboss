@@ -1,4 +1,8 @@
-import { isSupabaseConfigured, supabase } from "./supabase";
+import {
+  authenticatedClient,
+  isSupabaseConfigured,
+  supabase,
+} from "./supabase";
 
 /** Bucket used for admin uploads (see supabase/schema.sql). */
 const BUCKET = "site-images";
@@ -54,7 +58,8 @@ export async function uploadImage(file: File): Promise<string> {
   const dataUrl = await fileToDataUrl(file);
 
   if (isSupabaseConfigured && supabase) {
-    const uploaded = await uploadToStorage(supabase, dataUrl);
+    const db = await authenticatedClient();
+    const uploaded = await uploadToStorage(db, dataUrl);
     if (uploaded) return uploaded;
   }
 

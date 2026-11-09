@@ -1,7 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 function readEnv(...keys: string[]): string {
-  const env = import.meta.env as unknown as Record<string, string | undefined>;
+  const env = (import.meta.env ?? {}) as unknown as Record<
+    string,
+    string | undefined
+  >;
   for (const key of keys) {
     const value = env[key];
     if (value) return value;
@@ -17,6 +20,60 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 export const configHint =
   "Supabase yapılandırması eksik. SUPABASE_URL ve SUPABASE_ANON_KEY anahtarlarını tanımlayın.";
 
+const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+const READ_RETRY_DELAYS_MS = [500, 1500];
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+}
+
+function requestMethod(input: RequestInfo | URL, init?: RequestInit): string {
+  if (init?.method) return init.method.toUpperCase();
+  if (typeof Request !== "undefined" && input instanceof Request) {
+    return input.method.toUpperCase();
+  }
+  return "GET";
+}
+
+/**
+ * Supabase reads are retried on transient network/HTTP failures. Mutations are
+ * intentionally sent only once so a duplicated insert or delete is impossible.
+ */
+export async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const canRetry = requestMethod(input, init) === "GET";
+  const maxAttempts = canRetry ? READ_RETRY_DELAYS_MS.length + 1 : 1;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(input, init);
+      const shouldRetry =
+        canRetry &&
+        attempt < maxAttempts - 1 &&
+        RETRYABLE_STATUS.has(response.status);
+
+      if (!shouldRetry) return response;
+      if (response.body) await response.body.cancel().catch(() => undefined);
+    } catch (error) {
+      lastError = error;
+      if (!canRetry || attempt >= maxAttempts - 1) throw error;
+    }
+
+    await wait(
+      READ_RETRY_DELAYS_MS[
+        Math.min(attempt, READ_RETRY_DELAYS_MS.length - 1)
+      ],
+    );
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Veritabanına bağlanılamadı.");
+}
+
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -24,5 +81,25 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         autoRefreshToken: true,
         detectSessionInUrl: true,
       },
+      global: {
+        fetch: fetchWithRetry,
+      },
     })
   : null;
+
+/**
+ * Writes require a live admin session. Calling getSession before the mutation
+ * refreshes an expired access token instead of letting the INSERT/UPDATE fail
+ * with a cryptic JWT error after the admin panel has been idle for a while.
+ */
+export async function authenticatedClient(): Promise<SupabaseClient> {
+  if (!supabase) throw new Error(configHint);
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (!data.session) {
+    throw new Error("Oturum süreniz doldu. Lütfen tekrar giriş yapın.");
+  }
+
+  return supabase;
+}
