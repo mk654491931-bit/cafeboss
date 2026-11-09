@@ -66,3 +66,5 @@ bun run github:check  # GitHub bağlantısını doğrula
 | --- | --- |
 | `/` | Tanıtım sitesi ve dijital menü |
 | `/admin` | Yönetim paneli |
+
+> Vercel'de SPA rotaları `/admin` gibi doğrudan adreslerden yenilendiğinde 404 vermemesi için `vercel.json` içindeki rewrite kuralı tüm bilinmeyen yolları `index.html` dosyasına yönlendirir.
