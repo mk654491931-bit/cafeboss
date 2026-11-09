@@ -9,20 +9,25 @@ import {
   LogOut,
   PackageCheck,
   Plus,
+  ReceiptText,
   RefreshCw,
   ShoppingBag,
   UtensilsCrossed,
+  Wallet,
 } from "lucide-react";
 import ProductRow from "./ProductRow";
 import AddProductModal from "./AddProductModal";
 import ConfirmDialog from "./ConfirmDialog";
 import GalleryEditor from "./GalleryEditor";
+import KasaPanel from "./kasa/KasaPanel";
+import DayReport from "./kasa/DayReport";
 import { useToast } from "../Toast";
 import { useMenu } from "../../hooks/useMenu";
+import { useKasa } from "../../hooks/useKasa";
 import { signOut } from "../../lib/auth";
 import type { Product } from "../../lib/types";
 
-type View = "products" | "gallery";
+type View = "products" | "kasa" | "report" | "gallery";
 
 export default function Dashboard() {
   const toast = useToast();
@@ -38,6 +43,7 @@ export default function Dashboard() {
     changeAvailability,
     removeProduct,
   } = useMenu();
+  const kasa = useKasa();
 
   const [view, setView] = useState<View>("products");
   const [showAdd, setShowAdd] = useState(false);
@@ -62,7 +68,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-cream-100">
-      <header className="sticky top-0 z-40 border-b border-espresso-700/10 bg-cream-100/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-espresso-700/10 bg-cream-100/95 backdrop-blur print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-espresso-700 text-caramel-400">
@@ -70,9 +76,11 @@ export default function Dashboard() {
             </span>
             <div>
               <h1 className="font-serif text-lg leading-tight text-espresso-800">
-                Menü Yönetimi
+                Yönetim Paneli
               </h1>
-              <p className="text-xs text-espresso-800/55">Boss Cafe Admin</p>
+              <p className="text-xs text-espresso-800/55">
+                Menü · Kasa · Galeri
+              </p>
             </div>
           </div>
 
@@ -98,35 +106,49 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            { label: "Toplam Ürün", value: stats.total, icon: ShoppingBag },
-            { label: "Menüde Aktif", value: stats.available, icon: PackageCheck },
-            { label: "Tükendi", value: stats.soldOut, icon: UtensilsCrossed },
-          ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="card flex items-center gap-4 p-5">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-espresso-700/8 text-caramel-600">
-                <Icon className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="font-serif text-2xl text-espresso-800">{value}</p>
-                <p className="text-xs uppercase tracking-wider text-espresso-800/55">
-                  {label}
-                </p>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 print:max-w-none print:p-0">
+        {view === "products" && (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { label: "Toplam Ürün", value: stats.total, icon: ShoppingBag },
+              {
+                label: "Menüde Aktif",
+                value: stats.available,
+                icon: PackageCheck,
+              },
+              {
+                label: "Tükendi",
+                value: stats.soldOut,
+                icon: UtensilsCrossed,
+              },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="card flex items-center gap-4 p-5">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-espresso-700/10 text-caramel-600">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="font-serif text-2xl text-espresso-800">
+                    {value}
+                  </p>
+                  <p className="text-xs uppercase tracking-wider text-espresso-800/55">
+                    {label}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div
           role="tablist"
           aria-label="Yönetim bölümleri"
-          className="mt-8 flex w-fit gap-1 rounded-full border border-espresso-700/15 bg-white/70 p-1"
+          className="no-scrollbar mt-8 flex w-full gap-1 overflow-x-auto rounded-2xl border border-espresso-700/15 bg-white/70 p-1 print:hidden sm:w-fit sm:rounded-full"
         >
           {(
             [
               { id: "products", label: "Ürünler", icon: ShoppingBag },
+              { id: "kasa", label: "Kasa", icon: Wallet },
+              { id: "report", label: "Gün Sonu", icon: ReceiptText },
               { id: "gallery", label: "Galeri", icon: Images },
             ] as const
           ).map(({ id, label, icon: Icon }) => {
@@ -138,10 +160,10 @@ export default function Dashboard() {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setView(id)}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
                   isActive
                     ? "bg-espresso-700 text-cream-100 shadow-soft"
-                    : "text-espresso-700 hover:bg-espresso-700/8"
+                    : "text-espresso-700 hover:bg-espresso-700/10"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -153,6 +175,19 @@ export default function Dashboard() {
 
         {view === "gallery" ? (
           <GalleryEditor />
+        ) : view === "kasa" ? (
+          <KasaPanel
+            kasa={kasa}
+            products={products}
+            productsLoading={loading}
+            menuError={error}
+            onOpenReport={() => setView("report")}
+          />
+        ) : view === "report" ? (
+          <DayReport
+            sales={kasa.sales}
+            onBackToKasa={() => setView("kasa")}
+          />
         ) : (
           <>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3">

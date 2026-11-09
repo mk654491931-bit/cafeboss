@@ -1,12 +1,22 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Coffee, Eye, EyeOff, Loader2, Lock } from "lucide-react";
-import { ADMIN_USERNAME, resolveAdminEmail, signIn } from "../../lib/auth";
-import { isSupabaseConfigured, configHint } from "../../lib/supabase";
+import { AlertTriangle, ArrowLeft, Coffee, Eye, EyeOff, Loader2, Lock, Sparkles } from "lucide-react";
+import {
+  ADMIN_USERNAME,
+  PREVIEW_PASSWORD,
+  resolveAdminEmail,
+  signIn,
+} from "../../lib/auth";
+import { isSupabaseConfigured } from "../../lib/supabase";
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const previewMode = !isSupabaseConfigured;
+  const [username, setUsername] = useState(
+    previewMode ? ADMIN_USERNAME : "",
+  );
+  const [password, setPassword] = useState(
+    previewMode ? PREVIEW_PASSWORD : "",
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -56,10 +66,20 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {!isSupabaseConfigured && (
-            <div className="mt-6 flex gap-3 rounded-2xl border border-espresso-500/30 bg-espresso-700/5 p-4 text-sm text-espresso-700">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-caramel-600" />
-              <p>{configHint}</p>
+          {previewMode && (
+            <div className="mt-6 flex gap-3 rounded-2xl border border-caramel-500/40 bg-caramel-500/10 p-4 text-sm text-espresso-700">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-caramel-600" />
+              <div className="space-y-1">
+                <p className="font-semibold text-espresso-800">
+                  Önizleme modu
+                </p>
+                <p>
+                  Supabase anahtarları tanımlı değil. Yerel demo girişi:{" "}
+                  <span className="font-semibold">admin</span> /{" "}
+                  <span className="font-semibold">admin</span>. Kasa kayıtları
+                  bu tarayıcıda saklanır.
+                </p>
+              </div>
             </div>
           )}
 
@@ -122,7 +142,7 @@ export default function AdminLogin() {
 
             <button
               type="submit"
-              disabled={submitting || !isSupabaseConfigured}
+              disabled={submitting}
               className="btn btn-primary w-full"
             >
               {submitting ? (
@@ -140,8 +160,10 @@ export default function AdminLogin() {
           </form>
 
           <p className="mt-6 text-center text-xs leading-relaxed text-espresso-800/55">
-            Bu alan yalnızca Boss Cafe yöneticileri içindir. Tüm oturumlar
-            Supabase Auth ile güvenli şekilde doğrulanır.
+            Bu alan yalnızca Boss Cafe yöneticileri içindir.{" "}
+            {previewMode
+              ? "Önizleme oturumu yalnızca bu tarayıcıda geçerlidir."
+              : "Tüm oturumlar Supabase Auth ile güvenli şekilde doğrulanır."}
           </p>
         </div>
       </div>

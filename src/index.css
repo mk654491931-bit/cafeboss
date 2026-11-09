@@ -150,3 +150,35 @@
     animation: none !important;
   }
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .report-print,
+  .report-print * {
+    visibility: visible;
+  }
+
+  .report-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .report-print .shadow-soft,
+  .report-print .shadow-lift {
+    box-shadow: none !important;
+  }
+}

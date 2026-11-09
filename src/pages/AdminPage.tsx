@@ -4,7 +4,7 @@ import Dashboard from "../components/admin/Dashboard";
 import { useSession } from "../hooks/useSession";
 
 export default function AdminPage() {
-  const { session, loading } = useSession();
+  const { session, loading, preview } = useSession();
 
   if (loading) {
     return (
@@ -15,5 +15,5 @@ export default function AdminPage() {
     );
   }
 
-  return session ? <Dashboard /> : <AdminLogin />;
+  return session || preview ? <Dashboard /> : <AdminLogin />;
 }

@@ -6,6 +6,7 @@ Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfal�
 
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
 - **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma
+- **Kasa & masalar:** Kafe ve Okey Salonu olarak ikiye ayrılmış masa haritası (8 + 8 varsayılan masa), masa ekleme/kaldırma, menüden adisyon oluşturma, adet/toplam takibi, nakit/kart ödeme seçimi, hesap kapatınca tutarı genel kasaya işleme, masa fişi yazdırma ve yazdırılabilir/CSV gün sonu raporu
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
 - **Veri katmanı:** Supabase (menü okuma, yazma ve auth)
 
@@ -35,6 +36,8 @@ Freebuff'te bu anahtarlar **Keys / API keys** sekmesine `GITHUB_TOKEN` adıyla g
 Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalıştırarak `products` / `site_content` tablolarını, `site-images` görsel deposunu ve RLS politikalarını oluştur.
 
 > Supabase tanımlı değilken galeri ("Mekândan Kareler") tarayıcıdaki yerel kopyayı kullanır, böylece panel dışında da önizlemede çalışır; ürün ve galeri kalıcılığı için Supabase anahtarları gerekir.
+>
+> Aynı durumda `/admin` yerel önizleme oturumuyla açılır (kullanıcı adı `admin`, şifre `admin`) ve kasa kayıtları tarayıcıda saklanır. Sipariş ekranı, Supabase menüsü bağlanana kadar örnek menüyle çalışır. Supabase anahtarları tanımlandığında gerçek menü ve Supabase Auth otomatik olarak devreye girer; kasa verileri cihaz bazlı kalır.
 
 ## Komutlar
 
