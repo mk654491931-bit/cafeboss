@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Banknote,
   CheckCircle2,
@@ -27,18 +27,19 @@ import {
   type TableOrder,
 } from "../../../lib/kasa";
 import { printBillReceipt } from "../../../lib/receipt";
+import {
+  ALL_CATEGORIES,
+  catalogCategories,
+  filterCatalog,
+  groupCatalog,
+  productPhotoSources,
+} from "../../../lib/catalog";
 import type { Product } from "../../../lib/types";
-
-const ALL = "Tümü";
 
 const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
   hour: "2-digit",
   minute: "2-digit",
 });
-
-function normalize(value: string): string {
-  return value.toLocaleLowerCase("tr");
-}
 
 interface Props {
   table: CafeTable;
@@ -52,6 +53,95 @@ interface Props {
   onRemoveLine: (productId: string) => void;
   onCloseBill: (paymentMethod: PaymentMethod) => Promise<string | null>;
   onClose: () => void;
+}
+
+function OrderProductCard({
+  product,
+  onAdd,
+}: {
+  product: Product;
+  onAdd: (product: Product) => void;
+}) {
+  const [failedSources, setFailedSources] = useState<string[]>([]);
+  const imageSource = productPhotoSources(product).find(
+    (source) => !failedSources.includes(source),
+  );
+  const Icon = categoryIcon(product.category);
+  const available = product.is_available;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onAdd(product)}
+        disabled={!available}
+        aria-label={
+          available
+            ? `${product.name} ürününü hesaba ekle`
+            : `${product.name} tükendi`
+        }
+        className={`group flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-white text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
+          available
+            ? "border-espresso-700/10 hover:-translate-y-0.5 hover:border-caramel-500/45 hover:shadow-lift"
+            : "cursor-not-allowed border-espresso-700/10 opacity-70"
+        }`}
+      >
+        <span className="relative block aspect-[4/3] w-full overflow-hidden bg-espresso-800">
+          {imageSource ? (
+            <img
+              src={imageSource}
+              alt={product.name}
+              loading="lazy"
+              className={`h-full w-full object-cover transition duration-500 ${
+                available ? "group-hover:scale-105" : "saturate-50"
+              }`}
+              onError={() =>
+                setFailedSources((previous) =>
+                  previous.includes(imageSource)
+                    ? previous
+                    : [...previous, imageSource],
+                )
+              }
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-espresso-700 to-espresso-900 text-caramel-400">
+              <Icon className="h-8 w-8 opacity-80" />
+            </span>
+          )}
+
+          <span className="absolute left-2 top-2 max-w-[82%] truncate rounded-full bg-cream-100/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-espresso-600 backdrop-blur">
+            {product.category}
+          </span>
+
+          {!available && (
+            <span className="absolute inset-x-0 bottom-0 bg-ink/75 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-cream-100 backdrop-blur">
+              Tükendi
+            </span>
+          )}
+        </span>
+
+        <span className="flex flex-1 flex-col gap-2 p-3">
+          <span className="line-clamp-2 text-sm font-semibold leading-snug text-espresso-800">
+            {product.name}
+          </span>
+          <span className="mt-auto flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-espresso-700">
+              {formatPrice(product.price)}
+            </span>
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
+                available
+                  ? "bg-espresso-700 text-cream-50 group-hover:bg-espresso-800"
+                  : "bg-espresso-700/10 text-espresso-600/50"
+              }`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </span>
+          </span>
+        </span>
+      </button>
+    </li>
+  );
 }
 
 export default function TableOrderModal({
@@ -69,33 +159,35 @@ export default function TableOrderModal({
 }: Props) {
   const toast = useToast();
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState(ALL);
+  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES);
+  const [mobilePane, setMobilePane] = useState<"menu" | "bill">("menu");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [confirming, setConfirming] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const isOkey = table.section === "okey";
   const total = orderTotal(order);
   const itemCount = orderItemCount(order);
   const open = itemCount > 0;
 
-  const categories = useMemo(() => {
-    const seen = new Set<string>();
+  const categories = useMemo(() => catalogCategories(products), [products]);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const product of products) {
-      if (!seen.has(product.category)) seen.add(product.category);
+      counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
     }
-    return [ALL, ...Array.from(seen)];
+    return counts;
   }, [products]);
 
-  const filtered = useMemo(() => {
-    const search = normalize(query.trim());
-    return products.filter((product) => {
-      const matchesCategory =
-        activeCategory === ALL || product.category === activeCategory;
-      if (!matchesCategory) return false;
-      if (!search) return true;
-      return normalize(`${product.name} ${product.category}`).includes(search);
-    });
-  }, [products, activeCategory, query]);
+  const filtered = useMemo(
+    () => filterCatalog(products, activeCategory, query),
+    [products, activeCategory, query],
+  );
+  const groups = useMemo(() => groupCatalog(filtered), [filtered]);
+  const soldOutCount = useMemo(
+    () => products.filter((product) => !product.is_available).length,
+    [products],
+  );
 
   const SectionIcon = isOkey ? Dices : Coffee;
 
@@ -179,8 +271,53 @@ export default function TableOrderModal({
           </button>
         </header>
 
-        <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[1.15fr_0.85fr] lg:overflow-hidden">
-          <section className="border-b border-espresso-700/10 lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="grid shrink-0 grid-cols-2 gap-1 border-b border-espresso-700/10 bg-cream-50/95 p-2 lg:hidden">
+          {(
+            [
+              { id: "menu", label: "Menü", count: products.length },
+              { id: "bill", label: "Masa Hesabı", count: itemCount },
+            ] as const
+          ).map((pane) => {
+            const active = mobilePane === pane.id;
+            return (
+              <button
+                key={pane.id}
+                type="button"
+                onClick={() => {
+                  setMobilePane(pane.id);
+                  scrollRef.current?.scrollTo({ top: 0 });
+                }}
+                aria-pressed={active}
+                className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
+                  active
+                    ? "bg-espresso-700 text-cream-100 shadow-soft"
+                    : "text-espresso-700 hover:bg-espresso-700/8"
+                }`}
+              >
+                {pane.label}
+                <span
+                  className={`rounded-full px-1.5 text-[10px] ${
+                    active
+                      ? "bg-cream-100/20 text-cream-100"
+                      : "bg-espresso-700/8 text-espresso-600"
+                  }`}
+                >
+                  {pane.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          ref={scrollRef}
+          className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[1.15fr_0.85fr] lg:overflow-hidden"
+        >
+          <section
+            className={`border-b border-espresso-700/10 lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r ${
+              mobilePane === "bill" ? "hidden lg:block" : ""
+            }`}
+          >
             <div className="sticky top-0 z-10 space-y-3 bg-cream-50/95 px-4 py-4 backdrop-blur sm:px-6">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-espresso-600/60" />
@@ -192,40 +329,65 @@ export default function TableOrderModal({
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Menüde ara: latte, çay, tost…"
+                  placeholder="Menüde ara: tost, hamburger, latte…"
                   className="input h-11 bg-white py-2.5 pl-11 text-sm"
                 />
               </div>
 
+              <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-espresso-800/55">
+                <span>{products.length} menü ürünü</span>
+                <span>
+                  {soldOutCount > 0
+                    ? `${soldOutCount} tükendi · yalnızca görüntülenir`
+                    : "Tüm ürünler stokta"}
+                </span>
+              </div>
+
               <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
-                {categories.map((category) => {
+                {[ALL_CATEGORIES, ...categories].map((category) => {
                   const isActive = activeCategory === category;
+                  const count =
+                    category === ALL_CATEGORIES
+                      ? products.length
+                      : (categoryCounts.get(category) ?? 0);
                   return (
                     <button
                       key={category}
                       type="button"
                       onClick={() => setActiveCategory(category)}
                       aria-pressed={isActive}
-                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
+                      className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
                         isActive
                           ? "border-espresso-700 bg-espresso-700 text-cream-100"
                           : "border-espresso-700/15 bg-white/70 text-espresso-700 hover:border-espresso-700/35 hover:bg-white"
                       }`}
                     >
                       {category}
+                      <span
+                        className={`rounded-full px-1.5 text-[10px] ${
+                          isActive
+                            ? "bg-cream-100/20 text-cream-100"
+                            : "bg-espresso-700/8 text-espresso-600"
+                        }`}
+                      >
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="px-4 pb-5 sm:px-6">
+            <div className="px-4 pb-6 sm:px-6">
               {menuLoading && (
-                <div className="space-y-2" aria-label="Menü yükleniyor">
-                  {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  className="grid grid-cols-2 gap-2.5"
+                  aria-label="Menü yükleniyor"
+                >
+                  {Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={index}
-                      className="h-14 animate-pulse rounded-xl bg-espresso-700/10"
+                      className="h-52 animate-pulse rounded-2xl bg-espresso-700/10"
                     />
                   ))}
                 </div>
@@ -244,43 +406,53 @@ export default function TableOrderModal({
               )}
 
               {!menuLoading && filtered.length > 0 && (
-                <ul className="space-y-2">
-                  {filtered.map((product) => {
-                    const Icon = categoryIcon(product.category);
+                <div className="space-y-6">
+                  {groups.map((group, index) => {
+                    const GroupIcon = categoryIcon(group.category);
                     return (
-                      <li key={product.id}>
-                        <button
-                          type="button"
-                          onClick={() => onAdd(product)}
-                          className="group flex w-full items-center gap-3 rounded-xl border border-transparent bg-white/70 px-3 py-2.5 text-left transition hover:border-caramel-500/40 hover:bg-white hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
-                        >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-espresso-700/10 text-caramel-600">
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-espresso-800">
-                              {product.name}
+                      <section
+                        key={group.category}
+                        aria-labelledby={`order-category-${index}`}
+                      >
+                        <div className="mb-2.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-espresso-700/10 text-caramel-600">
+                              <GroupIcon className="h-3.5 w-3.5" />
                             </span>
-                            <span className="block truncate text-[11px] uppercase tracking-wider text-espresso-800/45">
-                              {product.category}
-                            </span>
+                            <h3
+                              id={`order-category-${index}`}
+                              className="font-serif text-lg text-espresso-800"
+                            >
+                              {group.category}
+                            </h3>
+                          </div>
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-800/40">
+                            {group.products.length} ürün
                           </span>
-                          <span className="shrink-0 text-sm font-semibold text-espresso-700">
-                            {formatPrice(product.price)}
-                          </span>
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-espresso-700 text-cream-50 transition group-hover:bg-espresso-800">
-                            <Plus className="h-3.5 w-3.5" />
-                          </span>
-                        </button>
-                      </li>
+                        </div>
+
+                        <ul className="grid grid-cols-2 gap-2.5">
+                          {group.products.map((product) => (
+                            <OrderProductCard
+                              key={product.id}
+                              product={product}
+                              onAdd={onAdd}
+                            />
+                          ))}
+                        </ul>
+                      </section>
                     );
                   })}
-                </ul>
+                </div>
               )}
             </div>
           </section>
 
-          <aside className="flex min-h-0 flex-col bg-white/55">
+          <aside
+            className={`min-h-0 flex-col bg-white/55 lg:flex ${
+              mobilePane === "menu" ? "hidden" : "flex"
+            }`}
+          >
             <div className="flex items-center justify-between gap-3 border-b border-espresso-700/10 px-5 py-4">
               <div className="flex items-center gap-2">
                 <ReceiptText className="h-4 w-4 text-caramel-600" />

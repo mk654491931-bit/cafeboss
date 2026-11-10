@@ -80,9 +80,9 @@ export default function KasaPanel({
 
   const usingDemoMenu = !productsLoading && products.length === 0;
   const catalog = useMemo(() => {
-    if (products.length > 0) {
-      return products.filter((product) => product.is_available);
-    }
+    // The POS must mirror the public menu. Sold-out products stay visible and
+    // are disabled inside the order screen instead of silently disappearing.
+    if (products.length > 0) return products;
     return productsLoading ? [] : DEMO_MENU;
   }, [products, productsLoading]);
 
@@ -145,8 +145,9 @@ export default function KasaPanel({
             Kasa &amp; Masalar
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-espresso-800/60">
-            Masaya tıklayıp menüden ürün ekleyin. Hesabı kapattığınızda tutar
-            genel kasaya işlenir; gün sonu raporu her zaman hazırdır.
+            Masaya tıklayıp menüdeki tüm ürünlerden adisyona ekleyin. Tükendi
+            işaretli ürünler listede görünür; stok açılınca tek dokunuşla
+            satılabilir. Hesap kapatıldığında tutar genel kasaya işlenir.
           </p>
         </div>
         <button type="button" onClick={openReport} className="btn btn-outline btn-sm">

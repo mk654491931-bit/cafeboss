@@ -3,13 +3,11 @@ import { AlertTriangle, Coffee, RefreshCw, Search, X } from "lucide-react";
 import Reveal from "../Reveal";
 import ProductCard from "./ProductCard";
 import { useMenu } from "../../hooks/useMenu";
-import { CATEGORIES } from "../../lib/types";
-
-const ALL = "Tümü";
-
-function normalize(value: string): string {
-  return value.toLocaleLowerCase("tr");
-}
+import {
+  ALL_CATEGORIES,
+  catalogCategories,
+  filterCatalog,
+} from "../../lib/catalog";
 
 interface MenuSectionProps {
   eyebrow?: string;
@@ -23,7 +21,7 @@ export default function MenuSection({
   description = "Fiyatlar ve stok durumu anlık olarak güncellenir. Beğendiğiniz ürünü baristamıza sormanız yeterli.",
 }: MenuSectionProps) {
   const { products, loading, error, reload } = useMenu();
-  const [activeCategory, setActiveCategory] = useState(ALL);
+  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES);
   const [query, setQuery] = useState("");
 
   const counts = useMemo(() => {
@@ -34,20 +32,12 @@ export default function MenuSection({
     return map;
   }, [products]);
 
-  const filtered = useMemo(() => {
-    const search = normalize(query.trim());
-    return products.filter((product) => {
-      const matchesCategory =
-        activeCategory === ALL || product.category === activeCategory;
-      if (!matchesCategory) return false;
-      if (!search) return true;
-      return normalize(`${product.name} ${product.description ?? ""}`).includes(
-        search,
-      );
-    });
-  }, [products, activeCategory, query]);
+  const filtered = useMemo(
+    () => filterCatalog(products, activeCategory, query),
+    [products, activeCategory, query],
+  );
 
-  const tabs = [ALL, ...CATEGORIES];
+  const tabs = [ALL_CATEGORIES, ...catalogCategories(products)];
 
   return (
     <section id="menu" className="section bg-cream-200/50">
@@ -98,7 +88,9 @@ export default function MenuSection({
             {tabs.map((tab) => {
               const isActive = tab === activeCategory;
               const count =
-                tab === ALL ? products.length : (counts.get(tab) ?? 0);
+                tab === ALL_CATEGORIES
+                  ? products.length
+                  : (counts.get(tab) ?? 0);
               return (
                 <button
                   key={tab}
@@ -180,7 +172,7 @@ export default function MenuSection({
               type="button"
               onClick={() => {
                 setQuery("");
-                setActiveCategory(ALL);
+                setActiveCategory(ALL_CATEGORIES);
               }}
               className="btn btn-outline btn-sm mt-5"
             >

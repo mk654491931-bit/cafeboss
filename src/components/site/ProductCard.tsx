@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Timer } from "lucide-react";
 import { formatPrice } from "../../lib/format";
 import { categoryIcon } from "../../lib/categoryIcons";
+import { productPhotoSources } from "../../lib/catalog";
 import type { Product } from "../../lib/types";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedSources, setFailedSources] = useState<string[]>([]);
   const available = product.is_available;
-  const hasImage = Boolean(product.image_url) && !imageFailed;
+  const imageSource = productPhotoSources(product).find(
+    (source) => !failedSources.includes(source),
+  );
   const Icon = categoryIcon(product.category);
 
   return (
@@ -17,15 +20,21 @@ export default function ProductCard({ product }: { product: Product }) {
       }`}
     >
       <div className="relative h-44 overflow-hidden bg-espresso-700/10">
-        {hasImage ? (
+        {imageSource ? (
           <img
-            src={product.image_url ?? ""}
+            src={imageSource}
             alt={product.name}
             loading="lazy"
             className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${
               available ? "" : "saturate-50"
             }`}
-            onError={() => setImageFailed(true)}
+            onError={() =>
+              setFailedSources((previous) =>
+                previous.includes(imageSource)
+                  ? previous
+                  : [...previous, imageSource],
+              )
+            }
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-espresso-700 to-espresso-900 text-caramel-400">
