@@ -8,10 +8,13 @@ import {
   Coffee,
   CreditCard,
   Dices,
-  Download,
+  FileDown,
+  Loader2,
+  Minus,
   Printer,
   ReceiptText,
   ShoppingBag,
+  TrendingDown,
   TrendingUp,
   Wallet,
   type LucideIcon,
@@ -19,9 +22,16 @@ import {
 import { useToast } from "../../Toast";
 import { formatPrice } from "../../../lib/format";
 import {
-  buildSalesCsv,
-  dateFromKey,
-  dateKey,
+  buildDayReportData,
+  formatChangeCaption,
+  formatPercentChange,
+  formatReportDate,
+  formatSignedPrice,
+  saleItemCount,
+  saleSummary,
+  type DayReportData,
+} from "../../../lib/dayReport";
+import {
   paymentLabel,
   sectionLabel,
   shiftDateKey,
@@ -30,31 +40,10 @@ import {
 } from "../../../lib/kasa";
 import { printBillReceipt } from "../../../lib/receipt";
 
-const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  weekday: "long",
-});
-
 const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
   hour: "2-digit",
   minute: "2-digit",
 });
-
-function formatReportDate(key: string): string {
-  return dateFormatter.format(dateFromKey(key));
-}
-
-function saleItemCount(sale: Sale): number {
-  return sale.lines.reduce((sum, line) => sum + line.quantity, 0);
-}
-
-function saleSummary(sale: Sale): string {
-  return sale.lines
-    .map((line) => `${line.quantity}× ${line.name}`)
-    .join(", ");
-}
 
 interface DayReportProps {
   sales: Sale[];
@@ -64,91 +53,38 @@ interface DayReportProps {
 export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
   const toast = useToast();
   const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  const dailySales = useMemo(
-    () =>
-      sales
-        .filter((sale) => dateKey(sale.closedAt) === selectedDate)
-        .sort((a, b) => b.closedAt.localeCompare(a.closedAt)),
+  const report = useMemo(
+    () => buildDayReportData(sales, selectedDate),
     [sales, selectedDate],
   );
-
-  const stats = useMemo(() => {
-    const revenue = dailySales.reduce((sum, sale) => sum + sale.total, 0);
-    const itemCount = dailySales.reduce(
-      (sum, sale) => sum + saleItemCount(sale),
-      0,
-    );
-    const average = dailySales.length > 0 ? revenue / dailySales.length : 0;
-    const cashTotal = dailySales
-      .filter((sale) => sale.paymentMethod !== "card")
-      .reduce((sum, sale) => sum + sale.total, 0);
-    const cardTotal = dailySales
-      .filter((sale) => sale.paymentMethod === "card")
-      .reduce((sum, sale) => sum + sale.total, 0);
-
-    const sections = (["cafe", "okey"] as const).map((section) => {
-      const rows = dailySales.filter((sale) => sale.section === section);
-      return {
-        section,
-        count: rows.length,
-        revenue: rows.reduce((sum, sale) => sum + sale.total, 0),
-      };
-    });
-
-    const productMap = new Map<
-      string,
-      { name: string; quantity: number; revenue: number }
-    >();
-    for (const sale of dailySales) {
-      for (const line of sale.lines) {
-        const current = productMap.get(line.name) ?? {
-          name: line.name,
-          quantity: 0,
-          revenue: 0,
-        };
-        current.quantity += line.quantity;
-        current.revenue += line.quantity * line.price;
-        productMap.set(line.name, current);
-      }
-    }
-
-    const topProducts = Array.from(productMap.values())
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 6);
-
-    return {
-      revenue,
-      itemCount,
-      average,
-      cashTotal,
-      cardTotal,
-      sections,
-      topProducts,
-    };
-  }, [dailySales]);
-
+  const dailySales = report.sales;
+  const topProducts = report.products.slice(0, 6);
   const generatedAt = new Date();
 
-  function downloadCsv() {
+  async function downloadPdf() {
     if (dailySales.length === 0) {
       toast.error("Bu tarihte indirilecek kapanmış hesap yok.");
       return;
     }
+    if (downloadingPdf) return;
 
-    const csv = buildSalesCsv(dailySales);
-    const blob = new Blob([`\uFEFF${csv}`], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `boss-cafe-gun-sonu-${selectedDate}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success("Gün sonu CSV dosyası indirildi.");
+    setDownloadingPdf(true);
+    try {
+      const { downloadDayReportPdf } = await import(
+        "../../../lib/dayReportPdf"
+      );
+      await downloadDayReportPdf(
+        report,
+        `boss-cafe-gun-sonu-${selectedDate}.pdf`,
+      );
+      toast.success("3 sayfalık gün sonu PDF raporu indirildi.");
+    } catch {
+      toast.error("PDF raporu oluşturulamadı. Lütfen tekrar deneyin.");
+    } finally {
+      setDownloadingPdf(false);
+    }
   }
 
   function printSaleReceipt(sale: Sale) {
@@ -192,17 +128,21 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
           </button>
           <button
             type="button"
-            onClick={downloadCsv}
-            disabled={dailySales.length === 0}
-            className="btn btn-outline btn-sm"
+            onClick={() => void downloadPdf()}
+            disabled={dailySales.length === 0 || downloadingPdf}
+            className="btn btn-primary btn-sm"
           >
-            <Download className="h-3.5 w-3.5" />
-            CSV İndir
+            {downloadingPdf ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileDown className="h-3.5 w-3.5" />
+            )}
+            {downloadingPdf ? "PDF Hazırlanıyor…" : "PDF İndir"}
           </button>
           <button
             type="button"
             onClick={() => window.print()}
-            className="btn btn-primary btn-sm"
+            className="btn btn-outline btn-sm"
           >
             <Printer className="h-3.5 w-3.5" />
             Raporu Yazdır
@@ -262,35 +202,37 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
           </p>
         </div>
 
+        <RevenueComparison data={report} />
+
         <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-5">
           <ReportStat
             label="Günlük Ciro"
-            value={formatPrice(stats.revenue)}
+            value={formatPrice(report.revenue)}
             hint={`${dailySales.length} kapanan masa`}
             icon={Wallet}
             accent
           />
           <ReportStat
             label="Nakit"
-            value={formatPrice(stats.cashTotal)}
+            value={formatPrice(report.cashTotal)}
             hint="Nakit tahsilat"
             icon={Banknote}
           />
           <ReportStat
             label="Kart"
-            value={formatPrice(stats.cardTotal)}
+            value={formatPrice(report.cardTotal)}
             hint="Kart tahsilatı"
             icon={CreditCard}
           />
           <ReportStat
             label="Satılan Ürün"
-            value={String(stats.itemCount)}
+            value={String(report.itemCount)}
             hint="Toplam adet"
             icon={ShoppingBag}
           />
           <ReportStat
             label="Ortalama Hesap"
-            value={formatPrice(stats.average)}
+            value={formatPrice(report.average)}
             hint="Masa başına"
             icon={TrendingUp}
           />
@@ -302,11 +244,11 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
               Bölüm Dağılımı
             </h3>
             <div className="mt-4 space-y-4">
-              {stats.sections.map(({ section, count, revenue }) => {
+              {report.sections.map(({ section, count, revenue }) => {
                 const isOkey = section === "okey";
                 const share =
-                  stats.revenue > 0
-                    ? Math.round((revenue / stats.revenue) * 100)
+                  report.revenue > 0
+                    ? Math.round((revenue / report.revenue) * 100)
                     : 0;
                 return (
                   <div key={section}>
@@ -340,7 +282,7 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
                       />
                     </div>
                     <p className="mt-1 text-[11px] text-espresso-800/45">
-                      {count} hesap · cironun %{share}'i
+                      {count} hesap · ciro payı %{share}
                     </p>
                   </div>
                 );
@@ -352,13 +294,13 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
             <h3 className="font-serif text-lg text-espresso-800">
               En Çok Satanlar
             </h3>
-            {stats.topProducts.length === 0 ? (
+            {topProducts.length === 0 ? (
               <p className="mt-4 text-sm text-espresso-800/50">
                 Bu tarihte satılan ürün yok.
               </p>
             ) : (
               <ol className="mt-3 space-y-2.5">
-                {stats.topProducts.map((product, index) => (
+                {topProducts.map((product, index) => (
                   <li
                     key={product.name}
                     className="flex items-center justify-between gap-3"
@@ -477,7 +419,7 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
               Günlük Toplam
             </span>
             <span className="font-serif text-2xl text-espresso-900">
-              {formatPrice(stats.revenue)}
+              {formatPrice(report.revenue)}
             </span>
           </div>
         </div>
@@ -487,6 +429,94 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
         Boss Cafe · {formatReportDate(selectedDate)} · Rapor oluşturma{" "}
         {generatedAt.toLocaleString("tr-TR")}
       </p>
+    </div>
+  );
+}
+
+function RevenueComparison({ data }: { data: DayReportData }) {
+  const { change } = data;
+  const positive = change.direction === "up" || change.direction === "new";
+  const negative = change.direction === "down";
+  const Icon = negative ? TrendingDown : positive ? TrendingUp : Minus;
+
+  const panelClass = negative
+    ? "border-[#9C3B2C]/20 bg-[#9C3B2C]/5"
+    : positive
+      ? "border-[#315C4C]/20 bg-[#315C4C]/5"
+      : "border-espresso-700/10 bg-white/50";
+  const iconClass = negative
+    ? "bg-[#9C3B2C]/10 text-[#9C3B2C]"
+    : positive
+      ? "bg-[#315C4C]/10 text-[#315C4C]"
+      : "bg-espresso-700/10 text-espresso-700";
+  const valueClass = negative
+    ? "text-[#9C3B2C]"
+    : positive
+      ? "text-[#315C4C]"
+      : "text-espresso-800";
+  const badgeClass = negative
+    ? "border-[#9C3B2C]/20 bg-white/60 text-[#9C3B2C]"
+    : positive
+      ? "border-[#315C4C]/20 bg-white/60 text-[#315C4C]"
+      : "border-espresso-700/15 bg-white/60 text-espresso-700";
+
+  return (
+    <div
+      className={`mx-4 mt-4 flex flex-col gap-4 rounded-2xl border p-4 sm:mx-6 sm:mt-6 sm:flex-row sm:items-center sm:justify-between ${panelClass}`}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-espresso-800/50">
+            Düne Göre Ciro
+          </p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-2">
+            <span
+              className={`font-serif text-3xl leading-none ${valueClass}`}
+            >
+              {formatPercentChange(change)}
+            </span>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
+            >
+              {formatSignedPrice(change.difference)}
+            </span>
+          </div>
+          <p className="mt-1.5 text-xs text-espresso-800/55">
+            {formatChangeCaption(change)} · Dün{" "}
+            {formatPrice(change.previous)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid shrink-0 grid-cols-2 gap-4 rounded-xl border border-espresso-700/10 bg-white/60 px-4 py-3 sm:min-w-[280px]">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-espresso-800/45">
+            Dün
+          </p>
+          <p className="mt-0.5 font-serif text-lg text-espresso-800">
+            {formatPrice(data.previousRevenue)}
+          </p>
+          <p className="text-[10px] text-espresso-800/45">
+            {data.previousSales.length} hesap · {data.previousItemCount} ürün
+          </p>
+        </div>
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-espresso-800/45">
+            Seçili Gün
+          </p>
+          <p className="mt-0.5 font-serif text-lg text-espresso-800">
+            {formatPrice(data.revenue)}
+          </p>
+          <p className="text-[10px] text-espresso-800/45">
+            {data.sales.length} hesap · {data.itemCount} ürün
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

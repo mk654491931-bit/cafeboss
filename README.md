@@ -6,7 +6,7 @@ Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfal�
 
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
 - **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma
-- **Kasa & masalar:** Kafe ve Okey Salonu olarak ikiye ayrılmış masa haritası (8 + 8 varsayılan masa), masa ekleme/kaldırma, menüden adisyon oluşturma, adet/toplam takibi, nakit/kart ödeme seçimi, hesap kapatınca tutarı genel kasaya işleme, masa fişi yazdırma ve yazdırılabilir/CSV gün sonu raporu
+- **Kasa & masalar:** Kafe ve Okey Salonu olarak ikiye ayrılmış masa haritası (8 + 8 varsayılan masa), masa ekleme/kaldırma, menüden adisyon oluşturma, adet/toplam takibi, nakit/kart ödeme seçimi, hesap kapatınca tutarı genel kasaya işleme, masa fişi yazdırma ve 3 sayfalık, bir önceki güne göre ciro değişimini içeren PDF gün sonu raporu
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
 - **Veri katmanı:** Supabase (menü okuma, yazma ve auth)
 
