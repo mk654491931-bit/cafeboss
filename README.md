@@ -7,8 +7,9 @@ Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfal�
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
 - **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma
 - **Kasa & masalar:** Kafe ve Okey Salonu olarak ikiye ayrılmış masa haritası (8 + 8 varsayılan masa), masa ekleme/kaldırma, menüden adisyon oluşturma, adet/toplam takibi, nakit/kart ödeme seçimi, hesap kapatınca tutarı genel kasaya işleme, masa fişi yazdırma ve 3 sayfalık, bir önceki güne göre ciro değişimini içeren PDF gün sonu raporu
+- **Ortak kasa:** Masalar, açık adisyonlar ve kapanan hesaplar Supabase'de saklanır; telefondan eklenen ürün masaüstünde canlı olarak görünür, sayfa yenilense veya cihaz değişse de kaybolmaz
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
-- **Veri katmanı:** Supabase (menü okuma, yazma ve auth)
+- **Veri katmanı:** Supabase (menü, kasa, galeri, auth ve canlı senkronizasyon)
 
 ## Teknolojiler
 
@@ -33,18 +34,21 @@ GITHUB_TOKEN=...
 
 Freebuff'te bu anahtarlar **Keys / API keys** sekmesine `GITHUB_TOKEN` adıyla girilir.
 
-Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalıştırarak `products` / `site_content` tablolarını, `site-images` görsel deposunu ve RLS politikalarını oluştur.
+Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalıştırarak `products` / `site_content` tablolarını, kasa tablolarını (`cafe_tables`, `table_orders`, `order_items`, `sales`, `sale_items`), `site-images` görsel deposunu, fonksiyonları, RLS politikalarını ve canlı senkronizasyonu oluştur. Daha önce şemayı çalıştırdıysanız dosyayı yeniden çalıştırmanız yeterlidir; mevcut kayıtlar silinmez.
+>
+> Daha önce yalnızca tarayıcıda tutulan kasa kayıtları ortak kasaya otomatik taşınmaz. Şema kurulduktan sonra masa/adisyon/satış kayıtları Supabase'de birikmeye başlar.
 
 > Supabase tanımlı değilken galeri ("Mekândan Kareler") tarayıcıdaki yerel kopyayı kullanır, böylece panel dışında da önizlemede çalışır; ürün ve galeri kalıcılığı için Supabase anahtarları gerekir.
 >
-> Aynı durumda `/admin` yerel önizleme oturumuyla açılır (kullanıcı adı `admin`, şifre `admin`) ve kasa kayıtları tarayıcıda saklanır. Sipariş ekranı, Supabase menüsü bağlanana kadar örnek menüyle çalışır. Supabase anahtarları tanımlandığında gerçek menü ve Supabase Auth otomatik olarak devreye girer; kasa verileri cihaz bazlı kalır.
+> Aynı durumda `/admin` yerel önizleme oturumuyla açılır (kullanıcı adı `admin`, şifre `admin`) ve kasa kayıtları tarayıcıda saklanır. Sipariş ekranı, Supabase menüsü bağlanana kadar örnek menüyle çalışır. Supabase anahtarları tanımlandığında gerçek menü, Supabase Auth ve cihazlar arası ortak kasa otomatik olarak devreye girer.
 
 ### Veritabanı dayanıklılığı
 
 - Ücretsiz Supabase projeleri, 7 gün boyunca yeterli veritabanı etkinliği olmazsa duraklatılır. Bu bir şema veya migration sorunu değildir; proje duraklatıldıysa Supabase panelinden **Resume project** denmelidir. Kalıcı garanti için Supabase Pro gerekir.
 - `api/keepalive.js`, Vercel Cron ile günde bir kez Supabase'e üç hafif okuma isteği gönderir. Vercel'de Supabase URL ve anon anahtarı tanımlıysa projenin hareketsizlik nedeniyle duraklatılmasını önlemeye yardımcı olur.
 - Okuma istekleri geçici ağ/`429`/`5xx` hatalarında otomatik olarak yeniden denenir; yazma işlemlerinden önce admin oturumu tazelenir.
-- Mevcut `supabase/schema.sql` tabloları, RLS politikalarını ve görsel deposunu oluşturur; bu düzeltme için ek bir migration dosyası gerekmez.
+- Mevcut `supabase/schema.sql` tabloları, kasa tablolarını, RLS politikalarını, stok kilitlenmesini önleyen atomik kasa fonksiyonlarını ve görsel deposunu oluşturur.
+- Kasa değişiklikleri `postgres_changes` ile anlık, bağlantı koparsa 20 saniyelik yenileme ve pencere odağı ile yedekli olarak senkronize edilir. Açık adisyon ve masa kaldırma/satış kapatma işlemleri atomik veritabanı fonksiyonlarıyla yapılır.
 
 ## Komutlar
 

@@ -5,8 +5,10 @@ import {
   Coffee,
   Dices,
   Landmark,
+  Loader2,
   Plus,
   ReceiptText,
+  RefreshCw,
   Sparkles,
   Timer,
   Trash2,
@@ -78,13 +80,23 @@ export default function KasaPanel({
     return { cash, daily, openTables, openTotal };
   }, [kasa.sales, kasa.tables, kasa.orders, todaySales]);
 
-  const usingDemoMenu = !productsLoading && products.length === 0;
+  const usingDemoMenu =
+    !productsLoading &&
+    products.length === 0 &&
+    (!kasa.usingCloud || kasa.localFallback);
   const catalog = useMemo(() => {
     // The POS must mirror the public menu. Sold-out products stay visible and
     // are disabled inside the order screen instead of silently disappearing.
     if (products.length > 0) return products;
-    return productsLoading ? [] : DEMO_MENU;
-  }, [products, productsLoading]);
+    if (productsLoading || (kasa.usingCloud && !kasa.localFallback)) return [];
+    return DEMO_MENU;
+  }, [products, productsLoading, kasa.usingCloud, kasa.localFallback]);
+
+  function reportAction(action: Promise<string | null>) {
+    void action.then((message) => {
+      if (message) toast.error(message);
+    });
+  }
 
   const selectedTable =
     kasa.tables.find((table) => table.id === selectedTableId) ?? null;
@@ -149,12 +161,73 @@ export default function KasaPanel({
             işaretli ürünler listede görünür; stok açılınca tek dokunuşla
             satılabilir. Hesap kapatıldığında tutar genel kasaya işlenir.
           </p>
+          <p className="mt-2 flex items-center gap-2 text-[11px] font-medium text-espresso-800/50">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                !kasa.usingCloud
+                  ? "bg-espresso-500/50"
+                  : kasa.loading
+                    ? "animate-pulse bg-caramel-500"
+                    : kasa.error || kasa.syncState === "offline"
+                      ? "bg-[#9C3B2C]"
+                      : "bg-[#315C4C]"
+              }`}
+            />
+            {!kasa.usingCloud
+              ? "Önizleme · kayıtlar bu tarayıcıda"
+              : kasa.loading
+                ? "Supabase'e bağlanıyor…"
+                : kasa.localFallback
+                  ? "Geçici olarak bu cihazda · Supabase kurulumu gerekli"
+                  : kasa.error || kasa.syncState === "offline"
+                    ? "Bağlantı sorunu · kayıtlar yeniden denenecek"
+                    : "Supabase · telefon ve masaüstü ortak kasa"}
+          </p>
         </div>
         <button type="button" onClick={openReport} className="btn btn-outline btn-sm">
           <ReceiptText className="h-4 w-4" />
           Gün Sonu Raporu
         </button>
       </div>
+
+      {kasa.loading && (
+        <div className="flex items-center gap-3 rounded-2xl border border-espresso-700/10 bg-white/60 px-4 py-3 text-sm text-espresso-700">
+          <Loader2 className="h-4 w-4 animate-spin text-caramel-600" />
+          Masalar ve açık adisyonlar Supabase'den yükleniyor…
+        </div>
+      )}
+
+      {kasa.error && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-2xl border border-[#9C3B2C]/25 bg-[#9C3B2C]/5 p-4 text-sm text-espresso-700 sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#9C3B2C]" />
+            <div>
+              <p className="font-semibold text-espresso-800">
+                Kasa veritabanına ulaşılamadı
+              </p>
+              <p className="mt-1 leading-relaxed">{kasa.error}</p>
+              {kasa.localFallback && (
+                <p className="mt-2 text-xs leading-relaxed text-espresso-700/70">
+                  Kasa şimdilik yalnızca bu cihazda çalışıyor. Şema
+                  çalıştırıldığında ortak kasa otomatik devreye girer; telefon
+                  ve masaüstü aynı kayıtları görür.
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void kasa.reload()}
+            className="btn btn-outline btn-sm shrink-0"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Tekrar Dene
+          </button>
+        </div>
+      )}
 
       {!isSupabaseConfigured && (
         <div className="flex items-start gap-3 rounded-2xl border border-caramel-500/35 bg-caramel-500/10 p-4 text-sm text-espresso-700">
@@ -165,17 +238,19 @@ export default function KasaPanel({
             </span>{" "}
             Masa, adisyon ve kasa kayıtları bu tarayıcıda saklanır. Menü
             bağlanamadığı için sipariş ekranı örnek menüyle çalışır; Supabase
-            anahtarları eklendiğinde gerçek ürünler otomatik gelir.
+            anahtarları eklendiğinde gerçek ürünler ve cihazlar arası ortak
+            kasa otomatik devreye girer.
           </p>
         </div>
       )}
 
-      {isSupabaseConfigured && menuError && usingDemoMenu && (
+      {isSupabaseConfigured && menuError && (
         <div className="flex items-start gap-3 rounded-2xl border border-espresso-500/30 bg-white/70 p-4 text-sm text-espresso-700">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-caramel-600" />
           <p className="leading-relaxed">
-            Menü sunucusuna ulaşılamadı; sipariş ekranında örnek menü
-            gösteriliyor. Yeni hesap açmadan önce bağlantıyı kontrol edin.
+            Menü sunucusuna ulaşılamadı. Ürünler gelmeden yeni adisyon
+            açılmaması için menüyü yenileyin; masa ve kasa kayıtları mevcut
+            modda korunmaya devam eder.
           </p>
         </div>
       )}
@@ -251,19 +326,25 @@ export default function KasaPanel({
           products={catalog}
           menuLoading={productsLoading}
           usingDemoMenu={usingDemoMenu}
-          onAdd={(product) => kasa.addItem(selectedTable.id, product)}
+          onAdd={(product) =>
+            reportAction(kasa.addItem(selectedTable.id, product))
+          }
           onIncrease={(productId) =>
-            kasa.changeQuantity(selectedTable.id, productId, 1)
+            reportAction(
+              kasa.changeQuantity(selectedTable.id, productId, 1),
+            )
           }
           onDecrease={(productId) =>
-            kasa.changeQuantity(selectedTable.id, productId, -1)
+            reportAction(
+              kasa.changeQuantity(selectedTable.id, productId, -1),
+            )
           }
           onRemoveLine={(productId) =>
-            kasa.removeLine(selectedTable.id, productId)
+            reportAction(kasa.removeLine(selectedTable.id, productId))
           }
           onCloseBill={async (paymentMethod) => {
             const amount = orderTotal(kasa.orders[selectedTable.id]);
-            const message = kasa.closeTable(
+            const message = await kasa.closeTable(
               selectedTable.id,
               paymentMethod,
             );
@@ -284,8 +365,8 @@ export default function KasaPanel({
           defaultSection={addSection}
           tables={kasa.tables}
           onClose={() => setAddSection(null)}
-          onSubmit={(section, label) => {
-            const message = kasa.addTable(section, label);
+          onSubmit={async (section, label) => {
+            const message = await kasa.addTable(section, label);
             if (message) return message;
             toast.success(
               `${sectionLabel(section)} bölümüne "${label}" eklendi.`,
@@ -306,7 +387,7 @@ export default function KasaPanel({
           confirmLabel="Masayı Kaldır"
           onClose={() => setPendingRemove(null)}
           onConfirm={async () => {
-            const message = kasa.removeTable(pendingRemove.id);
+            const message = await kasa.removeTable(pendingRemove.id);
             if (message) return message;
             toast.success(`${pendingRemove.label} kaldırıldı.`);
             return null;
@@ -547,13 +628,17 @@ function AddTableModal({
   defaultSection: TableSection;
   tables: CafeTable[];
   onClose: () => void;
-  onSubmit: (section: TableSection, label: string) => string | null;
+  onSubmit: (
+    section: TableSection,
+    label: string,
+  ) => Promise<string | null>;
 }) {
   const [section, setSection] = useState<TableSection>(defaultSection);
   const [label, setLabel] = useState(() =>
     nextTableLabel(tables, defaultSection),
   );
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   function chooseSection(next: TableSection) {
     setSection(next);
@@ -561,9 +646,12 @@ function AddTableModal({
     setError(null);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = onSubmit(section, label);
+    if (submitting) return;
+    setSubmitting(true);
+    const message = await onSubmit(section, label);
+    setSubmitting(false);
     if (message) {
       setError(message);
       return;
@@ -645,6 +733,7 @@ function AddTableModal({
               }}
               placeholder="Örn. Masa 9"
               className="input"
+              maxLength={60}
               autoFocus
               required
             />
@@ -667,9 +756,17 @@ function AddTableModal({
             <button type="button" onClick={onClose} className="btn btn-outline">
               Vazgeç
             </button>
-            <button type="submit" className="btn btn-primary">
-              <Plus className="h-4 w-4" />
-              Masayı Ekle
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              {submitting ? "Ekleniyor…" : "Masayı Ekle"}
             </button>
           </div>
         </form>
