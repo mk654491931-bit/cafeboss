@@ -22,13 +22,11 @@ import { formatPrice } from "../../../lib/format";
 import { isSupabaseConfigured } from "../../../lib/supabase";
 import {
   DEMO_MENU,
-  dateKey,
   nextTableLabel,
   orderItemCount,
   orderTotal,
   paymentLabel,
   sectionLabel,
-  todayKey,
   type CafeTable,
   type TableOrder,
   type TableSection,
@@ -61,15 +59,7 @@ export default function KasaPanel({
   const [addSection, setAddSection] = useState<TableSection | null>(null);
   const [pendingRemove, setPendingRemove] = useState<CafeTable | null>(null);
 
-  const today = todayKey();
-  const todaySales = useMemo(
-    () => kasa.sales.filter((sale) => dateKey(sale.closedAt) === today),
-    [kasa.sales, today],
-  );
-
   const totals = useMemo(() => {
-    const cash = kasa.sales.reduce((sum, sale) => sum + sale.total, 0);
-    const daily = todaySales.reduce((sum, sale) => sum + sale.total, 0);
     const openTables = kasa.tables.filter(
       (table) => orderItemCount(kasa.orders[table.id]) > 0,
     );
@@ -77,8 +67,10 @@ export default function KasaPanel({
       (sum, table) => sum + orderTotal(kasa.orders[table.id]),
       0,
     );
-    return { cash, daily, openTables, openTotal };
-  }, [kasa.sales, kasa.tables, kasa.orders, todaySales]);
+    return { openTables, openTotal };
+  }, [kasa.tables, kasa.orders]);
+
+  const summary = kasa.summary;
 
   const usingDemoMenu =
     !productsLoading &&
@@ -121,15 +113,17 @@ export default function KasaPanel({
   const summaryCards = [
     {
       label: "Genel Kasa",
-      value: formatPrice(totals.cash),
-      hint: `${kasa.sales.length} kapatılan hesap`,
+      value: summary ? formatPrice(summary.allRevenue) : "—",
+      hint: summary
+        ? `${summary.allCount} kapatılan hesap`
+        : "Özet bekleniyor",
       icon: Landmark,
       dark: true,
     },
     {
       label: "Bugünkü Ciro",
-      value: formatPrice(totals.daily),
-      hint: `${todaySales.length} hesap · Bugün`,
+      value: summary ? formatPrice(summary.todayRevenue) : "—",
+      hint: summary ? `${summary.todayCount} hesap · Bugün` : "Özet bekleniyor",
       icon: TrendingUp,
       dark: false,
     },
@@ -142,7 +136,7 @@ export default function KasaPanel({
     },
     {
       label: "Bugün Kapanan",
-      value: String(todaySales.length),
+      value: summary ? String(summary.todayCount) : "—",
       hint: "Masa hesabı",
       icon: CheckCircle2,
       dark: false,

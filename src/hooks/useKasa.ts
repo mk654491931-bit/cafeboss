@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  buildKasaSummary,
   createKasaId,
+  dayBounds,
   loadKasaState,
   orderTotal,
   saveKasaState,
+  todayKey,
   type CafeTable,
   type KasaState,
+  type KasaSummary,
   type OrderLine,
   type PaymentMethod,
   type Sale,
@@ -17,7 +21,7 @@ import {
   changeKasaOrderItemQuantity,
   closeKasaTable,
   deleteKasaTable,
-  fetchKasaState,
+  fetchKasaSummary,
   fetchKasaWorkspace,
   insertKasaTable,
   isMissingKasaSchema,
@@ -27,21 +31,26 @@ import {
 import type { Product } from "../lib/types";
 
 const EMPTY_STATE: KasaState = { tables: [], orders: {}, sales: [] };
-const POLL_INTERVAL_MS = 20_000;
+const POLL_INTERVAL_MS = 60_000;
 const REALTIME_DEBOUNCE_MS = 180;
+// Realtime açıkken yedek tarama seyrek; bağlantı koparsa her dakika.
+const HEALTHY_POLL_EVERY = 5;
 
 export type KasaSyncState = "connecting" | "live" | "polling" | "offline";
 
 /**
- * Kasa durumunun tek kaynağı. Supabase yapılandırıldığında masalar, açık
- * adisyonlar ve satışlar veritabanında tutulur; telefon ve masaüstü aynı
- * kayıtları görür. Önizleme modunda ise tarayıcı deposu kullanılır.
+ * Kasa durumunun tek kaynağı. Supabase yapılandırıldığında masalar ve açık
+ * adisyonlar veritabanında tutulur; satış geçmişinin tamamı istemciye
+ * çekilmez. Özet kartları küçük bir SQL toplamından, gün sonu raporu ise
+ * yalnızca seçili gün + önceki günden beslenir.
  */
 export function useKasa() {
   const usingCloud = isSupabaseConfigured;
   const [state, setState] = useState<KasaState>(() =>
     usingCloud ? EMPTY_STATE : loadKasaState(),
   );
+  const [summary, setSummary] = useState<KasaSummary | null>(null);
+  const [salesVersion, setSalesVersion] = useState(0);
   const [loading, setLoading] = useState(usingCloud);
   const [error, setError] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<KasaSyncState>(
@@ -54,6 +63,10 @@ export function useKasa() {
   const localFallbackRef = useRef(false);
   const realtimeConnectedRef = useRef(false);
   const useDatabase = usingCloud && !localFallback;
+
+  const bumpSalesVersion = useCallback(() => {
+    setSalesVersion((version) => version + 1);
+  }, []);
 
   useEffect(() => {
     stateRef.current = state;
@@ -68,30 +81,33 @@ export function useKasa() {
   }, []);
 
   const reload = useCallback(
-    async (options?: {
-      silent?: boolean;
-      full?: boolean;
-    }): Promise<void> => {
+    async (options?: { silent?: boolean }): Promise<void> => {
       if (!usingCloud) {
         setState(loadKasaState());
         return;
       }
 
       const sequence = ++loadSequence.current;
-      const full = options?.full ?? true;
       if (!options?.silent) setLoading(true);
 
       try {
-        if (full || localFallbackRef.current) {
-          const next = await fetchKasaState();
-          if (!mountedRef.current || sequence !== loadSequence.current) return;
-          localFallbackRef.current = false;
-          setLocalFallback(false);
-          setState(next);
-        } else {
-          const workspace = await fetchKasaWorkspace();
-          if (!mountedRef.current || sequence !== loadSequence.current) return;
-          setState((prev) => ({ ...prev, ...workspace }));
+        const bounds = dayBounds(todayKey());
+        const [workspaceResult, summaryResult] = await Promise.allSettled([
+          fetchKasaWorkspace(),
+          fetchKasaSummary(bounds.start, bounds.end),
+        ]);
+        if (!mountedRef.current || sequence !== loadSequence.current) return;
+        if (workspaceResult.status === "rejected") {
+          throw workspaceResult.reason;
+        }
+
+        localFallbackRef.current = false;
+        setLocalFallback(false);
+        setState((prev) => ({ ...prev, ...workspaceResult.value }));
+        // Özet RPC'si henüz kurulmadıysa kasa çalışmaya devam eder; kartlar
+        // migration uygulanana kadar "—" gösterir.
+        if (summaryResult.status === "fulfilled") {
+          setSummary(summaryResult.value);
         }
         setError(null);
         setSyncState("live");
@@ -106,6 +122,7 @@ export function useKasa() {
         if (isMissingKasaSchema(loadError) && !localFallbackRef.current) {
           localFallbackRef.current = true;
           setLocalFallback(true);
+          setSummary(null);
           setState(loadKasaState());
         }
       } finally {
@@ -127,30 +144,37 @@ export function useKasa() {
     if (!usingCloud || !realtime) return;
 
     let reloadTimer: number | undefined;
-    let reloadFull = false;
+    let lastRefreshAt = 0;
     const channel = realtime.channel(`kasa-sync-${Date.now()}`);
 
-    const scheduleReload = (full: boolean) => {
-      reloadFull = reloadFull || full;
+    const scheduleReload = () => {
       window.clearTimeout(reloadTimer);
       reloadTimer = window.setTimeout(() => {
-        const shouldFetchSales = reloadFull;
-        reloadFull = false;
-        void reload({ silent: true, full: shouldFetchSales });
+        void reload({ silent: true });
       }, REALTIME_DEBOUNCE_MS);
+    };
+
+    const refreshNow = () => {
+      if (document.visibilityState === "hidden") return;
+      if (Date.now() - lastRefreshAt < 1_000) return;
+      lastRefreshAt = Date.now();
+      void reload({ silent: true });
     };
 
     for (const table of ["cafe_tables", "table_orders", "order_items"]) {
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table },
-        () => scheduleReload(false),
+        scheduleReload,
       );
     }
     channel.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "sales" },
-      () => scheduleReload(true),
+      () => {
+        bumpSalesVersion();
+        scheduleReload();
+      },
     );
 
     channel.subscribe((status) => {
@@ -163,34 +187,37 @@ export function useKasa() {
       }
     });
 
-    let pollCount = 0;
+    let pollTick = 0;
     const pollTimer = window.setInterval(() => {
-      pollCount += 1;
-      void reload({
-        silent: true,
-        full: !realtimeConnectedRef.current || pollCount % 6 === 0,
-      });
+      if (document.visibilityState === "hidden") return;
+      pollTick += 1;
+      if (
+        realtimeConnectedRef.current &&
+        pollTick % HEALTHY_POLL_EVERY !== 0
+      ) {
+        return;
+      }
+      void reload({ silent: true });
     }, POLL_INTERVAL_MS);
 
-    const onFocus = () => {
-      void reload({ silent: true, full: true });
-    };
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") onFocus();
+      if (document.visibilityState === "visible") refreshNow();
     };
 
-    window.addEventListener("focus", onFocus);
+    window.addEventListener("focus", refreshNow);
+    window.addEventListener("online", refreshNow);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       window.clearTimeout(reloadTimer);
       window.clearInterval(pollTimer);
       realtimeConnectedRef.current = false;
-      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("focus", refreshNow);
+      window.removeEventListener("online", refreshNow);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       void realtime.removeChannel(channel);
     };
-  }, [usingCloud, reload]);
+  }, [usingCloud, reload, bumpSalesVersion]);
 
   const addTable = useCallback(
     async (section: TableSection, label: string): Promise<string | null> => {
@@ -222,7 +249,7 @@ export function useKasa() {
 
       try {
         await insertKasaTable(table);
-        await reload({ silent: true, full: false });
+        await reload({ silent: true });
         return null;
       } catch (insertError) {
         return kasaError(insertError);
@@ -256,7 +283,7 @@ export function useKasa() {
 
       try {
         await deleteKasaTable(tableId);
-        await reload({ silent: true, full: false });
+        await reload({ silent: true });
         return null;
       } catch (deleteError) {
         return kasaError(deleteError);
@@ -270,7 +297,7 @@ export function useKasa() {
       if (useDatabase) {
         try {
           await addKasaOrderItem(tableId, product.id);
-          await reload({ silent: true, full: false });
+          await reload({ silent: true });
           return null;
         } catch (addError) {
           return kasaError(addError);
@@ -345,7 +372,7 @@ export function useKasa() {
       if (useDatabase) {
         try {
           await changeKasaOrderItemQuantity(tableId, productId, delta);
-          await reload({ silent: true, full: false });
+          await reload({ silent: true });
           return null;
         } catch (quantityError) {
           return kasaError(quantityError);
@@ -383,7 +410,7 @@ export function useKasa() {
       if (useDatabase) {
         try {
           await removeKasaOrderItem(tableId, productId);
-          await reload({ silent: true, full: false });
+          await reload({ silent: true });
           return null;
         } catch (removeError) {
           return kasaError(removeError);
@@ -426,7 +453,8 @@ export function useKasa() {
       if (useDatabase) {
         try {
           await closeKasaTable(tableId, paymentMethod);
-          await reload({ silent: true, full: true });
+          bumpSalesVersion();
+          await reload({ silent: true });
           return null;
         } catch (closeError) {
           return kasaError(closeError);
@@ -447,6 +475,7 @@ export function useKasa() {
         total: orderTotal(order),
         paymentMethod,
         closedAt: new Date().toISOString(),
+        openedAt: order.openedAt,
       };
 
       setState((prev) => {
@@ -454,15 +483,20 @@ export function useKasa() {
         delete orders[tableId];
         return { ...prev, orders, sales: [sale, ...prev.sales] };
       });
+      bumpSalesVersion();
       return null;
     },
-    [reload, useDatabase],
+    [bumpSalesVersion, reload, useDatabase],
   );
 
   return {
     tables: state.tables,
     orders: state.orders,
     sales: state.sales,
+    summary: useDatabase
+      ? summary
+      : buildKasaSummary(state.sales, todayKey()),
+    salesVersion,
     loading,
     error,
     syncState,

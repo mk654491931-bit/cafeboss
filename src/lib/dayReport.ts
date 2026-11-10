@@ -44,6 +44,19 @@ export interface HourStat {
   revenue: number;
 }
 
+export interface TableSessionStat {
+  saleId: string;
+  tableLabel: string;
+  section: TableSection;
+  openedAt?: string;
+  closedAt: string;
+  durationMinutes: number | null;
+  itemCount: number;
+  revenue: number;
+}
+
+export const TOP_PRODUCT_COUNT = 17;
+
 export interface DayReportData {
   date: string;
   previousDate: string;
@@ -63,6 +76,8 @@ export interface DayReportData {
   products: ProductStat[];
   categories: CategoryStat[];
   hourly: HourStat[];
+  sessions: TableSessionStat[];
+  averageSessionMinutes: number | null;
 }
 
 const reportDateFormatter = new Intl.DateTimeFormat("tr-TR", {
@@ -76,6 +91,14 @@ const percentFormatter = new Intl.NumberFormat("tr-TR", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
+
+export function formatDuration(minutes: number | null): string {
+  if (minutes === null || !Number.isFinite(minutes)) return "—";
+  const total = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  return hours > 0 ? `${hours} sa ${rest} dk` : `${rest} dk`;
+}
 
 export function formatReportDate(key: string): string {
   const [year, month, day] = key.split("-").map(Number);
@@ -237,6 +260,33 @@ export function buildDayReportData(
     };
   });
 
+  const sessions: TableSessionStat[] = sales.map((sale) => {
+    const opened = sale.openedAt ? new Date(sale.openedAt).getTime() : NaN;
+    const closed = new Date(sale.closedAt).getTime();
+    const durationMinutes =
+      Number.isFinite(opened) && Number.isFinite(closed) && closed >= opened
+        ? (closed - opened) / 60_000
+        : null;
+
+    return {
+      saleId: sale.id,
+      tableLabel: sale.tableLabel,
+      section: sale.section,
+      openedAt: sale.openedAt,
+      closedAt: sale.closedAt,
+      durationMinutes,
+      itemCount: saleItemCount(sale),
+      revenue: sale.total,
+    };
+  });
+  const durations = sessions
+    .map((session) => session.durationMinutes)
+    .filter((value): value is number => value !== null);
+  const averageSessionMinutes =
+    durations.length > 0
+      ? durations.reduce((sum, value) => sum + value, 0) / durations.length
+      : null;
+
   return {
     date: selectedDate,
     previousDate,
@@ -256,5 +306,7 @@ export function buildDayReportData(
     products,
     categories,
     hourly,
+    sessions,
+    averageSessionMinutes,
   };
 }

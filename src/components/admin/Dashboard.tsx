@@ -184,10 +184,7 @@ export default function Dashboard() {
             onOpenReport={() => setView("report")}
           />
         ) : view === "report" ? (
-          <DayReport
-            sales={kasa.sales}
-            onBackToKasa={() => setView("kasa")}
-          />
+          <DayReport kasa={kasa} onBackToKasa={() => setView("kasa")} />
         ) : (
           <>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3">

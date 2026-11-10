@@ -6,7 +6,7 @@ Eleşkirt merkezli Boss Cafe için dijital menü ve yönetim paneli. Tek sayfal�
 
 - **Tanıtım sitesi:** hero, hakkımızda, galeri, okey salonu, dijital menü ve iletişim bölümleri
 - **Admin paneli:** `/admin` — ürün ekleme/düzenleme (fotoğrafı cihazdan yükleme veya "Mekândan Kareler" galerisinden seçme), fiyat ve stok güncelleme, galeri ("Mekândan Kareler") fotoğraf ekleme/çıkarma
-- **Kasa & masalar:** Kafe ve Okey Salonu olarak ikiye ayrılmış masa haritası (8 + 8 varsayılan masa), masa ekleme/kaldırma, menüden adisyon oluşturma, adet/toplam takibi, nakit/kart ödeme seçimi, hesap kapatınca tutarı genel kasaya işleme, masa fişi yazdırma ve 3 sayfalık, bir önceki güne göre ciro değişimini içeren PDF gün sonu raporu
+- **Kasa & masalar:** Kafe ve Okey Salonu olarak ikiye ayrılmış masa haritası (8 + 8 varsayılan masa), masa ekleme/kaldırma, menüden adisyon oluşturma, adet/toplam takibi, nakit/kart ödeme seçimi, hesap kapatınca tutarı genel kasaya işleme, masa fişi yazdırma ve 4 sayfalık, bir önceki güne göre ciro değişimini, günün en çok satan 17 ürününü ve masa oturumlarını içeren PDF gün sonu raporu
 - **Ortak kasa:** Masalar, açık adisyonlar ve kapanan hesaplar Supabase'de saklanır; telefondan eklenen ürün masaüstünde canlı olarak görünür, sayfa yenilense veya cihaz değişse de kaybolmaz
 - **Scroll efektleri:** okuma ilerleme çubuğu, scroll spy, hero parallax, reveal animasyonları, yukarı çık butonu (`prefers-reduced-motion` desteğiyle)
 - **Veri katmanı:** Supabase (menü, kasa, galeri, auth ve canlı senkronizasyon)
@@ -48,7 +48,9 @@ Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalışt�
 - `api/keepalive.js`, Vercel Cron ile günde bir kez Supabase'e üç hafif okuma isteği gönderir. Vercel'de Supabase URL ve anon anahtarı tanımlıysa projenin hareketsizlik nedeniyle duraklatılmasını önlemeye yardımcı olur.
 - Okuma istekleri geçici ağ/`429`/`5xx` hatalarında otomatik olarak yeniden denenir; yazma işlemlerinden önce admin oturumu tazelenir.
 - Mevcut `supabase/schema.sql` tabloları, kasa tablolarını, RLS politikalarını, stok kilitlenmesini önleyen atomik kasa fonksiyonlarını ve görsel deposunu oluşturur.
-- Kasa değişiklikleri `postgres_changes` ile anlık, bağlantı koparsa 20 saniyelik yenileme ve pencere odağı ile yedekli olarak senkronize edilir. Açık adisyon ve masa kaldırma/satış kapatma işlemleri atomik veritabanı fonksiyonlarıyla yapılır.
+- Kasa değişiklikleri `postgres_changes` ile anlık senkronize edilir. Yedek tarama 60 saniyede bir çalışır; Realtime açıkken yalnızca 5 dakikada bir, bağlantı koptuğunda her dakika yenilenir ve sekme görünmezken tamamen durur. Pencere odağı/çevrimiçi olma da yenilemeyi tetikler. Açık adisyon ve masa kaldırma/satış kapatma işlemleri atomik veritabanı fonksiyonlarıyla yapılır.
+- Egress için satış geçmişinin tamamı panelde tutulmaz. Genel kasa/bugünkü ciro kartları `get_kasa_summary` SQL toplamından gelir; gün sonu raporu yalnızca seçili gün ve bir önceki günü satırlarıyla birlikte okur. Günün en çok satan 17 ürünü bu günün `sale_items` kayıtlarından hesaplanır.
+- Masa oturumu, adisyona ilk ürün eklendiğinde başlar (`opened_at`) ve hesap kapatıldığında biter (`closed_at`). Raporda geliş, kalkış, süre ve ciro gösterilir; eski satışlarda `opened_at` yoksa geliş/süre “—” olarak görünür.
 
 ## Komutlar
 

@@ -1,7 +1,9 @@
 import { jsPDF } from "jspdf";
 import { formatPrice } from "./format";
 import {
+  TOP_PRODUCT_COUNT,
   formatChangeCaption,
+  formatDuration,
   formatPercentChange,
   formatReportDate,
   formatSignedPrice,
@@ -19,7 +21,7 @@ const PAGE_HEIGHT = 297;
 const MARGIN = 14;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const FOOTER_LINE_Y = 282;
-const TOTAL_PAGES = 3;
+const TOTAL_PAGES = 4;
 
 type RGB = [number, number, number];
 
@@ -671,7 +673,7 @@ function drawCategoryTable(doc: jsPDF, data: DayReportData): void {
 }
 
 function productRows(products: ProductStat[]): ProductStat[] {
-  return products.slice(0, 18);
+  return products.slice(0, TOP_PRODUCT_COUNT);
 }
 
 function drawProductTable(doc: jsPDF, data: DayReportData): void {
@@ -784,7 +786,7 @@ function drawPageTwo(doc: jsPDF, data: DayReportData): void {
   });
   drawText(
     doc,
-    "Kategori payları, satış adetleri ve en çok satan ürünler",
+    `Kategori payları, satış adetleri ve en çok satan ${TOP_PRODUCT_COUNT} ürün`,
     MARGIN,
     43.5,
     { size: 7.4, color: MUTED },
@@ -937,8 +939,175 @@ function drawSalesTotals(doc: jsPDF, data: DayReportData): void {
   });
 }
 
+function drawSessionTable(doc: jsPDF, data: DayReportData): void {
+  const x = MARGIN;
+  const y = 52;
+  const rows = data.sessions.slice(0, 30);
+  const widths = [18, 18, 38, 30, 24, 16, 38];
+  const headers = [
+    "Geliş",
+    "Kalkış",
+    "Masa",
+    "Bölüm",
+    "Süre",
+    "Adet",
+    "Ciro",
+  ];
+  const headerHeight = 8;
+  const rowHeight = 6.2;
+  const tableWidth = widths.reduce((sum, width) => sum + width, 0);
+
+  setFill(doc, ESPRESSO);
+  doc.roundedRect(x, y, tableWidth, headerHeight, 1.5, 1.5, "F");
+  let cursorX = x;
+  headers.forEach((header, index) => {
+    const align = index >= 5 ? "right" : "left";
+    drawText(
+      doc,
+      header,
+      cursorX + (align === "right" ? widths[index] - 3 : 3.5),
+      y + 5.4,
+      { font: "bold", size: 6.2, color: CREAM, align },
+    );
+    cursorX += widths[index];
+  });
+
+  if (rows.length === 0) {
+    setFill(doc, WHITE);
+    doc.rect(x, y + headerHeight, tableWidth, 14, "F");
+    drawText(doc, "Bu tarihte masa oturumu yok.", x + 4, y + headerHeight + 8, {
+      size: 7.4,
+      color: MUTED,
+    });
+    return;
+  }
+
+  rows.forEach((session, index) => {
+    const rowY = y + headerHeight + index * rowHeight;
+    setFill(doc, index % 2 === 0 ? WHITE : PAPER);
+    doc.rect(x, rowY, tableWidth, rowHeight, "F");
+
+    const baseY = rowY + 4.1;
+    drawText(
+      doc,
+      session.openedAt
+        ? new Date(session.openedAt).toLocaleTimeString("tr-TR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "—",
+      x + 3.5,
+      baseY,
+      { size: 6.2, color: ESPRESSO_SOFT },
+    );
+    drawText(
+      doc,
+      new Date(session.closedAt).toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      x + widths[0] + 3.5,
+      baseY,
+      { size: 6.2, color: ESPRESSO_SOFT },
+    );
+    drawText(
+      doc,
+      fitText(doc, session.tableLabel, widths[2] - 7, "bold", 6.2),
+      x + widths[0] + widths[1] + 3.5,
+      baseY,
+      { font: "bold", size: 6.2, color: INK },
+    );
+    drawText(
+      doc,
+      fitText(doc, sectionLabel(session.section), widths[3] - 7, "normal", 6),
+      x + widths[0] + widths[1] + widths[2] + 3.5,
+      baseY,
+      { size: 6, color: MUTED },
+    );
+    drawText(
+      doc,
+      formatDuration(session.durationMinutes),
+      x + widths[0] + widths[1] + widths[2] + widths[3] + 3.5,
+      baseY,
+      { size: 6, color: ESPRESSO_SOFT },
+    );
+    drawText(
+      doc,
+      String(session.itemCount),
+      x + tableWidth - widths[6] - 3,
+      baseY,
+      { size: 6, color: ESPRESSO_SOFT, align: "right" },
+    );
+    drawText(doc, formatPrice(session.revenue), x + tableWidth - 3, baseY, {
+      font: "bold",
+      size: 6.3,
+      color: ESPRESSO,
+      align: "right",
+    });
+  });
+
+  if (data.sessions.length > rows.length) {
+    drawText(
+      doc,
+      `En son ${rows.length} oturum gösteriliyor; toplam ${data.sessions.length} oturum.`,
+      x,
+      y + headerHeight + rows.length * rowHeight + 5,
+      { size: 6, color: MUTED },
+    );
+  }
+}
+
+function drawSessionTotals(doc: jsPDF, data: DayReportData): void {
+  const x = MARGIN;
+  const y = 262;
+  const width = CONTENT_WIDTH;
+  setFill(doc, ESPRESSO);
+  doc.roundedRect(x, y, width, 14, 2.5, 2.5, "F");
+  drawText(doc, "MASA OTURUMLARI", x + 6, y + 6.4, {
+    font: "bold",
+    size: 6.2,
+    color: CARAMEL,
+    charSpace: 0.3,
+  });
+  drawText(
+    doc,
+    `${data.sessions.length} oturum · ${data.itemCount} ürün · Ortalama ${formatDuration(
+      data.averageSessionMinutes,
+    )}`,
+    x + 6,
+    y + 10.7,
+    { size: 6.1, color: [209, 195, 184] },
+  );
+  drawText(doc, formatPrice(data.revenue), x + width - 6, y + 9.4, {
+    font: "bold",
+    size: 14,
+    color: CREAM,
+    align: "right",
+  });
+}
+
 function drawPageThree(doc: jsPDF, data: DayReportData): void {
-  drawPageHeader(doc, 3, "Hesap Dökümü", data);
+  drawPageHeader(doc, 3, "Masa Oturumları", data);
+  drawText(doc, "Masa Oturumları", MARGIN, 38, {
+    font: "bold",
+    size: 16,
+    color: ESPRESSO,
+  });
+  drawText(
+    doc,
+    `${data.sessions.length} oturum · ortalama süre ${formatDuration(
+      data.averageSessionMinutes,
+    )} · geliş ilk ürünün eklendiği an, kalkış hesabın kapandığı an`,
+    MARGIN,
+    43.5,
+    { size: 7.2, color: MUTED },
+  );
+  drawSessionTable(doc, data);
+  drawSessionTotals(doc, data);
+}
+
+function drawPageFour(doc: jsPDF, data: DayReportData): void {
+  drawPageHeader(doc, 4, "Hesap Dökümü", data);
   drawText(doc, "Kapanan Hesaplar", MARGIN, 38, {
     font: "bold",
     size: 16,
@@ -978,7 +1147,7 @@ export function buildDayReportPdf(
 
   doc.setProperties({
     title: `Boss Cafe Gün Sonu Raporu - ${data.date}`,
-    subject: "Günlük ciro, ürün ve hesap dökümü",
+    subject: "Günlük ciro, masa oturumları, ürün ve hesap dökümü",
     author: "Boss Cafe",
     creator: "Boss Cafe Yönetim Paneli",
   });
@@ -995,6 +1164,8 @@ export function buildDayReportPdf(
   drawPageTwo(doc, data);
   doc.setPage(3);
   drawPageThree(doc, data);
+  doc.setPage(4);
+  drawPageFour(doc, data);
 
   drawFooter(doc, generatedAt, data.date);
   return doc;

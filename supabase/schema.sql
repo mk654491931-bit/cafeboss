@@ -139,8 +139,12 @@ create table if not exists public.sales (
   total numeric(10, 2) not null check (total >= 0),
   payment_method text not null check (payment_method in ('cash', 'card')),
   closed_at timestamptz not null default now(),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  opened_at timestamptz
 );
+
+-- Daha önce kurulmuş kasalarda masa oturumu kolonunu ekle.
+alter table public.sales add column if not exists opened_at timestamptz;
 
 create index if not exists sales_closed_at_idx
   on public.sales (closed_at desc);
@@ -355,9 +359,9 @@ begin
   end if;
 
   insert into public.sales
-    (table_id, table_label, section, total, payment_method, closed_at)
+    (table_id, table_label, section, total, payment_method, closed_at, opened_at)
   values
-    (p_table_id, v_table_label, v_section, v_total, p_payment_method, now())
+    (p_table_id, v_table_label, v_section, v_total, p_payment_method, now(), v_opened_at)
   returning id into v_sale_id;
 
   insert into public.sale_items
@@ -376,6 +380,38 @@ begin
 
   return v_sale_id;
 end;
+$$;
+
+-- Özet kartları: tüm zamanlar ve seçili gün için tek satır döner.
+-- Satış satırları istemciye taşınmadan toplamlar veritabanında hesaplanır.
+create or replace function public.get_kasa_summary(
+  p_day_start timestamptz,
+  p_day_end timestamptz
+)
+returns table (
+  all_revenue numeric,
+  all_count bigint,
+  day_revenue numeric,
+  day_count bigint
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select
+    coalesce(sum(total), 0)::numeric as all_revenue,
+    count(*)::bigint as all_count,
+    coalesce(
+      sum(total) filter (
+        where closed_at >= p_day_start and closed_at < p_day_end
+      ),
+      0
+    )::numeric as day_revenue,
+    count(*) filter (
+      where closed_at >= p_day_start and closed_at < p_day_end
+    )::bigint as day_count
+  from public.sales;
 $$;
 
 create or replace function public.delete_cafe_table(p_table_id text)
@@ -409,12 +445,14 @@ revoke all on function public.change_order_item_quantity(text, text, integer) fr
 revoke all on function public.remove_order_item(text, text) from public;
 revoke all on function public.close_kasa_table(text, text) from public;
 revoke all on function public.delete_cafe_table(text) from public;
+revoke all on function public.get_kasa_summary(timestamptz, timestamptz) from public;
 
 grant execute on function public.add_order_item(text, text, integer) to authenticated;
 grant execute on function public.change_order_item_quantity(text, text, integer) to authenticated;
 grant execute on function public.remove_order_item(text, text) to authenticated;
 grant execute on function public.close_kasa_table(text, text) to authenticated;
 grant execute on function public.delete_cafe_table(text) to authenticated;
+grant execute on function public.get_kasa_summary(timestamptz, timestamptz) to authenticated;
 
 -- Canlı senkron: iki cihaz birbirinin masa/adisyon değişikliklerini anında görsün.
 do $$

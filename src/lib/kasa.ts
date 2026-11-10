@@ -46,6 +46,15 @@ export interface Sale {
   total: number;
   paymentMethod?: PaymentMethod;
   closedAt: string;
+  /** İlk ürünün adisyona eklendiği an; eski satışlarda bulunmaz. */
+  openedAt?: string;
+}
+
+export interface KasaSummary {
+  allRevenue: number;
+  allCount: number;
+  todayRevenue: number;
+  todayCount: number;
 }
 
 export interface KasaState {
@@ -397,7 +406,8 @@ function isSale(value: unknown): value is Sale {
     (value.paymentMethod === undefined ||
       value.paymentMethod === "cash" ||
       value.paymentMethod === "card") &&
-    typeof value.closedAt === "string"
+    typeof value.closedAt === "string" &&
+    (value.openedAt === undefined || typeof value.openedAt === "string")
   );
 }
 
@@ -528,4 +538,37 @@ export function shiftDateKey(key: string, days: number): string {
   const date = dateFromKey(key);
   date.setDate(date.getDate() + days);
   return dateKey(date);
+}
+
+/** Yerel günün başlangıç ve bitişini Supabase sorgusu için ISO'ya çevirir. */
+export function dayBounds(key: string): { start: string; end: string } {
+  return {
+    start: dateFromKey(key).toISOString(),
+    end: dateFromKey(shiftDateKey(key, 1)).toISOString(),
+  };
+}
+
+/** Yerel kasa kayıtlarından genel ve günlük özet çıkarır. */
+export function buildKasaSummary(
+  sales: Sale[],
+  selectedDate: string,
+): KasaSummary {
+  let allRevenue = 0;
+  let todayRevenue = 0;
+  let todayCount = 0;
+
+  for (const sale of sales) {
+    allRevenue += sale.total;
+    if (dateKey(sale.closedAt) === selectedDate) {
+      todayRevenue += sale.total;
+      todayCount += 1;
+    }
+  }
+
+  return {
+    allRevenue,
+    allCount: sales.length,
+    todayRevenue,
+    todayCount,
+  };
 }

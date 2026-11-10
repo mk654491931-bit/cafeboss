@@ -3,6 +3,7 @@ import { toTurkishError } from "./errors";
 import { authenticatedClient } from "./supabase";
 import type {
   CafeTable,
+  KasaSummary,
   KasaState,
   PaymentMethod,
   Sale,
@@ -47,14 +48,23 @@ interface SaleRow {
   total: number | string;
   payment_method: string;
   closed_at: string;
+  opened_at?: string | null;
   sale_items: ItemRow[] | null;
+}
+
+interface SummaryRow {
+  all_revenue: number | string | null;
+  all_count: number | string | null;
+  day_revenue: number | string | null;
+  day_count: number | string | null;
 }
 
 const TABLE_COLUMNS = "id, label, section, created_at";
 const ORDER_COLUMNS =
   "table_id, opened_at, order_items(product_id, name, category, price, quantity, added_at)";
-const SALE_COLUMNS =
-  "id, table_id, table_label, section, total, payment_method, closed_at, sale_items(name, category, price, quantity, position)";
+// `*` kullanılıyor: opened_at kolonu (migration) henüz eklenmemişse sorgu
+// bozulmasın, eski satışlarda geliş saati "—" olarak gösterilsin.
+const SALE_COLUMNS = "*, sale_items(name, category, price, quantity, position)";
 
 function readMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -164,27 +174,8 @@ function mapSale(row: SaleRow): Sale {
     total: Number(row.total),
     paymentMethod: paymentOf(row.payment_method),
     closedAt: row.closed_at,
+    openedAt: row.opened_at ?? undefined,
   };
-}
-
-async function fetchSales(db: SupabaseClient): Promise<SaleRow[]> {
-  const rows: SaleRow[] = [];
-
-  for (let from = 0; ; from += SALES_PAGE_SIZE) {
-    const { data, error } = await db
-      .from("sales")
-      .select(SALE_COLUMNS)
-      .order("closed_at", { ascending: false })
-      .range(from, from + SALES_PAGE_SIZE - 1);
-
-    if (error) throw error;
-
-    const page = (data ?? []) as SaleRow[];
-    rows.push(...page);
-    if (page.length < SALES_PAGE_SIZE) break;
-  }
-
-  return rows;
 }
 
 async function fetchWorkspaceFrom(
@@ -226,19 +217,56 @@ export async function fetchKasaWorkspace(): Promise<
 }
 
 /**
- * Bütün kasa durumunu Supabase'den okur. Bu çağrı yalnızca giriş yapmış
- * yöneticiler için çalışır; satışlar sayfalanarak eksiksiz çekilir.
+ * Seçili tarih aralığındaki satışları okur. Gün sonu raporu yalnızca seçili
+ * günü ve bir önceki günü ister; tüm satış geçmişi hiçbir zaman çekilmez.
  */
-export async function fetchKasaState(): Promise<KasaState> {
+export async function fetchKasaSalesRange(
+  startIso: string,
+  endIso: string,
+): Promise<Sale[]> {
   const db = await authenticatedClient();
-  const [workspace, salesRows] = await Promise.all([
-    fetchWorkspaceFrom(db),
-    fetchSales(db),
-  ]);
+  const rows: SaleRow[] = [];
 
+  for (let from = 0; ; from += SALES_PAGE_SIZE) {
+    const { data, error } = await db
+      .from("sales")
+      .select(SALE_COLUMNS)
+      .gte("closed_at", startIso)
+      .lt("closed_at", endIso)
+      .order("closed_at", { ascending: false })
+      .range(from, from + SALES_PAGE_SIZE - 1);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as SaleRow[];
+    rows.push(...page);
+    if (page.length < SALES_PAGE_SIZE) break;
+  }
+
+  return rows.map(mapSale);
+}
+
+/**
+ * Özet kartları için tüm zamanların ve seçili günün toplamını tek, küçük bir
+ * RPC yanıtıyla getirir. Satış satırları istemciye taşınmaz.
+ */
+export async function fetchKasaSummary(
+  dayStart: string,
+  dayEnd: string,
+): Promise<KasaSummary> {
+  const db = await authenticatedClient();
+  const { data, error } = await db.rpc("get_kasa_summary", {
+    p_day_start: dayStart,
+    p_day_end: dayEnd,
+  });
+  if (error) throw error;
+
+  const row = (Array.isArray(data) ? data[0] : data) as SummaryRow | null;
   return {
-    ...workspace,
-    sales: salesRows.map(mapSale),
+    allRevenue: Number(row?.all_revenue ?? 0),
+    allCount: Number(row?.all_count ?? 0),
+    todayRevenue: Number(row?.day_revenue ?? 0),
+    todayCount: Number(row?.day_count ?? 0),
   };
 }
 

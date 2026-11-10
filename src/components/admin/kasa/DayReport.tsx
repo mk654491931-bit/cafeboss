@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   Banknote,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Coffee,
   CreditCard,
   Dices,
@@ -13,6 +15,7 @@ import {
   Minus,
   Printer,
   ReceiptText,
+  RefreshCw,
   ShoppingBag,
   TrendingDown,
   TrendingUp,
@@ -22,8 +25,10 @@ import {
 import { useToast } from "../../Toast";
 import { formatPrice } from "../../../lib/format";
 import {
+  TOP_PRODUCT_COUNT,
   buildDayReportData,
   formatChangeCaption,
+  formatDuration,
   formatPercentChange,
   formatReportDate,
   formatSignedPrice,
@@ -32,13 +37,16 @@ import {
   type DayReportData,
 } from "../../../lib/dayReport";
 import {
+  dayBounds,
   paymentLabel,
   sectionLabel,
   shiftDateKey,
   todayKey,
   type Sale,
 } from "../../../lib/kasa";
+import { fetchKasaSalesRange } from "../../../lib/kasaDb";
 import { printBillReceipt } from "../../../lib/receipt";
+import type { KasaApi } from "../../../hooks/useKasa";
 
 const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
   hour: "2-digit",
@@ -46,21 +54,64 @@ const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
 });
 
 interface DayReportProps {
-  sales: Sale[];
+  kasa: KasaApi;
   onBackToKasa: () => void;
 }
 
-export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
+export default function DayReport({ kasa, onBackToKasa }: DayReportProps) {
   const toast = useToast();
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [cloudSales, setCloudSales] = useState<Sale[]>([]);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [salesError, setSalesError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
+  const cloudMode = kasa.usingCloud && !kasa.localFallback;
 
+  // Rapor yalnızca seçili günü ve bir önceki günü ister; tüm satış geçmişi
+  // hiçbir zaman indirilmez. Lokal önizlemede kayıtlar zaten tarayıcıda.
+  useEffect(() => {
+    if (!cloudMode) {
+      setCloudSales([]);
+      setSalesError(null);
+      setLoadingSales(false);
+      return;
+    }
+
+    const start = dayBounds(shiftDateKey(selectedDate, -1)).start;
+    const end = dayBounds(selectedDate).end;
+    let cancelled = false;
+    setLoadingSales(true);
+    setSalesError(null);
+
+    fetchKasaSalesRange(start, end)
+      .then((rows) => {
+        if (!cancelled) setCloudSales(rows);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCloudSales([]);
+          setSalesError(
+            "Gün sonu kayıtları yüklenemedi. Bağlantıyı kontrol edip tekrar deneyin.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSales(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudMode, selectedDate, kasa.salesVersion, retryToken]);
+
+  const sales = cloudMode ? cloudSales : kasa.sales;
   const report = useMemo(
     () => buildDayReportData(sales, selectedDate),
     [sales, selectedDate],
   );
   const dailySales = report.sales;
-  const topProducts = report.products.slice(0, 6);
+  const topProducts = report.products.slice(0, TOP_PRODUCT_COUNT);
   const generatedAt = new Date();
 
   async function downloadPdf() {
@@ -79,7 +130,7 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
         report,
         `boss-cafe-gun-sonu-${selectedDate}.pdf`,
       );
-      toast.success("3 sayfalık gün sonu PDF raporu indirildi.");
+      toast.success("4 sayfalık gün sonu PDF raporu indirildi.");
     } catch {
       toast.error("PDF raporu oluşturulamadı. Lütfen tekrar deneyin.");
     } finally {
@@ -202,6 +253,32 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
           </p>
         </div>
 
+        {(loadingSales || salesError) && (
+          <div className="border-b border-espresso-700/10 px-4 py-3 sm:px-6 print:hidden">
+            {salesError ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#9C3B2C]/25 bg-[#9C3B2C]/5 px-3 py-2 text-sm text-espresso-700">
+                <span className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-[#9C3B2C]" />
+                  {salesError}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRetryToken((token) => token + 1)}
+                  className="btn btn-outline btn-sm"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Tekrar Dene
+                </button>
+              </div>
+            ) : (
+              <p className="flex items-center gap-2 text-xs font-medium text-espresso-800/55">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-caramel-600" />
+                Seçili gün ve önceki günün kayıtları yükleniyor…
+              </p>
+            )}
+          </div>
+        )}
+
         <RevenueComparison data={report} />
 
         <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-5">
@@ -292,7 +369,7 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
 
           <div className="rounded-2xl border border-espresso-700/10 bg-white/70 p-4 sm:p-5 print:break-inside-avoid">
             <h3 className="font-serif text-lg text-espresso-800">
-              En Çok Satanlar
+              En Çok Satan {TOP_PRODUCT_COUNT} Ürün
             </h3>
             {topProducts.length === 0 ? (
               <p className="mt-4 text-sm text-espresso-800/50">
@@ -302,7 +379,7 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
               <ol className="mt-3 space-y-2.5">
                 {topProducts.map((product, index) => (
                   <li
-                    key={product.name}
+                    key={`${product.category}-${product.name}`}
                     className="flex items-center justify-between gap-3"
                   >
                     <span className="flex min-w-0 items-center gap-2.5">
@@ -324,6 +401,91 @@ export default function DayReport({ sales, onBackToKasa }: DayReportProps) {
               </ol>
             )}
           </div>
+        </div>
+
+        <div className="border-t border-espresso-700/10">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-6">
+            <div>
+              <h3 className="font-serif text-lg text-espresso-800">
+                Masa Oturumları
+              </h3>
+              <p className="mt-0.5 text-[11px] text-espresso-800/45">
+                Geliş, ilk ürünün adisyona eklendiği an; kalkış, hesabın
+                kapandığı an.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-espresso-700/10 px-3 py-1 text-xs font-semibold text-espresso-600">
+              <Clock className="h-3 w-3" />
+              {report.sessions.length} oturum
+              {report.averageSessionMinutes !== null &&
+                ` · ort. ${formatDuration(report.averageSessionMinutes)}`}
+            </span>
+          </div>
+
+          {report.sessions.length === 0 ? (
+            <p className="px-4 pb-6 text-sm text-espresso-800/50 sm:px-6 print:hidden">
+              Bu tarihte masa oturumu yok.
+            </p>
+          ) : (
+            <div className="max-h-[420px] overflow-auto px-4 pb-5 sm:px-6 print:max-h-none print:overflow-visible">
+              <table className="w-full min-w-[680px] border-separate border-spacing-0 text-left text-xs">
+                <thead>
+                  <tr className="text-[10px] font-semibold uppercase tracking-[0.14em] text-espresso-800/45">
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2">
+                      Geliş
+                    </th>
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2">
+                      Kalkış
+                    </th>
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2">
+                      Masa
+                    </th>
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2">
+                      Bölüm
+                    </th>
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2">
+                      Süre
+                    </th>
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2 text-right">
+                      Ürün
+                    </th>
+                    <th className="sticky top-0 z-10 border-b border-espresso-700/10 bg-cream-50 px-2 py-2 text-right">
+                      Ciro
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-espresso-700/10">
+                  {report.sessions.map((session) => (
+                    <tr key={session.saleId}>
+                      <td className="whitespace-nowrap px-2 py-2.5 font-medium text-espresso-700">
+                        {session.openedAt
+                          ? timeFormatter.format(new Date(session.openedAt))
+                          : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-2.5 font-medium text-espresso-700">
+                        {timeFormatter.format(new Date(session.closedAt))}
+                      </td>
+                      <td className="px-2 py-2.5 font-semibold text-espresso-800">
+                        {session.tableLabel}
+                      </td>
+                      <td className="px-2 py-2.5 text-espresso-800/60">
+                        {sectionLabel(session.section)}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-2.5 text-espresso-800/70">
+                        {formatDuration(session.durationMinutes)}
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-espresso-800/70">
+                        {session.itemCount}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-2.5 text-right font-semibold text-espresso-800">
+                        {formatPrice(session.revenue)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="border-t border-espresso-700/10">
