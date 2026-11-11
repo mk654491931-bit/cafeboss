@@ -650,13 +650,19 @@ function AddTableModal({
     event.preventDefault();
     if (submitting) return;
     setSubmitting(true);
-    const message = await onSubmit(section, label);
-    setSubmitting(false);
-    if (message) {
-      setError(message);
-      return;
+    setError(null);
+    try {
+      const message = await onSubmit(section, label);
+      if (message) {
+        setError(message);
+        return;
+      }
+      onClose();
+    } catch {
+      setError("Masa eklenemedi. Bağlantınızı kontrol edip tekrar deneyin.");
+    } finally {
+      setSubmitting(false);
     }
-    onClose();
   }
 
   return (

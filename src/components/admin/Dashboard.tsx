@@ -61,9 +61,14 @@ export default function Dashboard() {
 
   async function handleLogout() {
     setLoggingOut(true);
-    const message = await signOut();
-    setLoggingOut(false);
-    if (message) toast.error(message);
+    try {
+      const message = await signOut();
+      if (message) toast.error(message);
+    } catch {
+      toast.error("Çıkış yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
+    } finally {
+      setLoggingOut(false);
+    }
   }
 
   return (

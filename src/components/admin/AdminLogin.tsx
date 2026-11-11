@@ -33,9 +33,17 @@ export default function AdminLogin({ notice }: { notice?: string | null }) {
 
     setSubmitting(true);
     setError(null);
-    const message = await signIn(resolveAdminEmail(trimmedUsername), password);
-    setSubmitting(false);
-    if (message) setError(message);
+    try {
+      const message = await signIn(
+        resolveAdminEmail(trimmedUsername),
+        password,
+      );
+      if (message) setError(message);
+    } catch {
+      setError("Giriş yapılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -74,7 +82,7 @@ export default function AdminLogin({ notice }: { notice?: string | null }) {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#9C3B2C]" />
               <div className="space-y-1">
                 <p className="font-semibold text-espresso-800">
-                  Oturum kontrolü gecikti
+                  Oturum kontrol edilemedi
                 </p>
                 <p>{notice}</p>
                 <p className="text-xs text-espresso-800/60">

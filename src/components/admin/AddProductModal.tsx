@@ -61,23 +61,29 @@ export default function AddProductModal({ onClose, onSubmit }: Props) {
     setSubmitting(true);
     setSubmitError(null);
 
-    const message = await onSubmit({
-      name: form.name.trim(),
-      category: form.category,
-      price: Number(form.price.replace(",", ".")),
-      description: form.description.trim(),
-      image_url: form.image_url.trim(),
-    });
+    try {
+      const message = await onSubmit({
+        name: form.name.trim(),
+        category: form.category,
+        price: Number(form.price.replace(",", ".")),
+        description: form.description.trim(),
+        image_url: form.image_url.trim(),
+      });
 
-    setSubmitting(false);
+      if (message) {
+        setSubmitError(message);
+        return;
+      }
 
-    if (message) {
-      setSubmitError(message);
-      return;
+      setForm(EMPTY);
+      onClose();
+    } catch {
+      setSubmitError(
+        "Ürün eklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+      );
+    } finally {
+      setSubmitting(false);
     }
-
-    setForm(EMPTY);
-    onClose();
   }
 
   return (
