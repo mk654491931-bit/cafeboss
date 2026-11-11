@@ -52,6 +52,16 @@ Ardından `supabase/schema.sql` dosyasını Supabase SQL editöründe çalışt�
 - Egress için satış geçmişinin tamamı panelde tutulmaz. Genel kasa/bugünkü ciro kartları `get_kasa_summary` SQL toplamından gelir; gün sonu raporu yalnızca seçili gün ve bir önceki günü satırlarıyla birlikte okur. Günün en çok satan 17 ürünü bu günün `sale_items` kayıtlarından hesaplanır.
 - Masa oturumu, adisyona ilk ürün eklendiğinde başlar (`opened_at`) ve hesap kapatıldığında biter (`closed_at`). Raporda geliş, kalkış, süre ve ciro gösterilir; eski satışlarda `opened_at` yoksa geliş/süre “—” olarak görünür.
 
+### Açılış ve ağ dayanıklılığı
+
+- `index.html` içindeki marka yükleme ekranı, JS paketi gelene kadar boş beyaz ekran yerine anında görünür. 12 saniyeden uzun süren yüklemede yenileme bağlantısı çıkar.
+- Fraunces ve Inter fontları artık Google Fonts yerine projeyle birlikte yerelden servis edilir; harici font isteği sayfayı kilitlemez.
+- Public site paketi yalnızca ana sayfayı içerir; `/admin` ayrı bir paket olarak yalnızca panel açıldığında indirilir.
+- Supabase okuma/yazma isteklerinde 12 saniyelik zaman aşımı, admin oturum kontrolünde 8 saniyelik zaman aşımı vardır. Böylece bağlantı yavaşladığında ekran sonsuza kadar spinner’da kalmaz.
+- Beklenmeyen render veya paket yükleme hataları `ErrorBoundary` tarafından yakalanır; kullanıcıya yenileme ve ana sayfa bağlantısı gösterilir.
+- Üretimde `public/sw.js` uygulama kabuğunu önbelleğe alır. Site bir kez açıldıktan sonra kısa süreli ağ/ISS kesintilerinde önbellekten açılabilir. İlk ziyaret yine ağ gerektirir.
+- `vercel.app` adresine erişim tamamen ISS/DNS kaynaklı engelliyse bu kodla aşılamaz; kalıcı çözüm kendi alan adınızı bağlamak veya farklı bir DNS/ağ kullanmaktır.
+
 ## Komutlar
 
 ```bash

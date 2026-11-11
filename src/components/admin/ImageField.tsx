@@ -65,9 +65,9 @@ export default function ImageField({
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="field-label mb-0">{label}</span>
-        <div className="mb-1.5 flex items-center gap-3">
+        <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
           {showGalleryPicker && (
             <button
               type="button"
@@ -108,6 +108,11 @@ export default function ImageField({
               src={value}
               alt="Seçilen fotoğraf"
               className={`${previewClassName} object-cover`}
+              onError={() =>
+                setError(
+                  "Fotoğraf görüntülenemedi. Bağlantıyı kontrol edin veya yeni bir dosya seçin.",
+                )
+              }
             />
             <div className="absolute inset-x-2 bottom-2 flex justify-between gap-2">
               <button

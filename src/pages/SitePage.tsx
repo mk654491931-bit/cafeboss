@@ -8,7 +8,7 @@ import ContactFooter from "../components/site/ContactFooter";
 
 export default function SitePage() {
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen-safe bg-cream-100">
       <Header />
       <main>
         <Hero />

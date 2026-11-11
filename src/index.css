@@ -82,6 +82,38 @@
 }
 
 @layer utilities {
+  /* Mobil tarayıcı çubuğu açılıp kapanırken tam ekran alanı kaymasın.
+     Önce eski tarayıcılar için vh, destekleyenlerde dvh/svh kullanılır. */
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .min-h-hero-safe {
+    min-height: calc(100vh - 4rem);
+    min-height: calc(100svh - 4rem);
+  }
+
+  .max-h-88-safe {
+    max-height: 88vh;
+    max-height: 88dvh;
+  }
+
+  .max-h-92-safe {
+    max-height: 92vh;
+    max-height: 92dvh;
+  }
+
+  .max-h-94-safe {
+    max-height: 94vh;
+    max-height: 94dvh;
+  }
+
+  .bottom-safe {
+    bottom: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
   .reveal {
     opacity: 0;
     transition:
@@ -113,6 +145,13 @@
 
   .scroll-cue {
     animation: scroll-cue 1.8s ease-in-out infinite;
+  }
+
+  @media (min-width: 768px) {
+    .min-h-hero-safe {
+      min-height: calc(100vh - 5rem);
+      min-height: calc(100svh - 5rem);
+    }
   }
 }
 

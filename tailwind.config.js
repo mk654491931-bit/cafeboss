@@ -33,8 +33,14 @@ export default {
         ink: "#1A1614",
       },
       fontFamily: {
-        serif: ["Fraunces", "Georgia", "serif"],
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Fraunces Variable", "Fraunces", "Georgia", "serif"],
+        sans: [
+          "Inter Variable",
+          "Inter",
+          "system-ui",
+          "-apple-system",
+          "sans-serif",
+        ],
       },
       boxShadow: {
         soft: "0 10px 40px -18px rgba(42, 28, 19, 0.35)",

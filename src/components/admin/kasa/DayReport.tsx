@@ -53,6 +53,12 @@ const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
   minute: "2-digit",
 });
 
+function formatTime(value: string | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : timeFormatter.format(date);
+}
+
 interface DayReportProps {
   kasa: KasaApi;
   onBackToKasa: () => void;
@@ -458,12 +464,10 @@ export default function DayReport({ kasa, onBackToKasa }: DayReportProps) {
                   {report.sessions.map((session) => (
                     <tr key={session.saleId}>
                       <td className="whitespace-nowrap px-2 py-2.5 font-medium text-espresso-700">
-                        {session.openedAt
-                          ? timeFormatter.format(new Date(session.openedAt))
-                          : "—"}
+                        {formatTime(session.openedAt)}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2.5 font-medium text-espresso-700">
-                        {timeFormatter.format(new Date(session.closedAt))}
+                        {formatTime(session.closedAt)}
                       </td>
                       <td className="px-2 py-2.5 font-semibold text-espresso-800">
                         {session.tableLabel}
@@ -548,7 +552,7 @@ export default function DayReport({ kasa, onBackToKasa }: DayReportProps) {
                           </span>
                         </p>
                         <p className="mt-0.5 text-[11px] text-espresso-800/45">
-                          {timeFormatter.format(new Date(sale.closedAt))} ·{" "}
+                          {formatTime(sale.closedAt)} ·{" "}
                           {saleItemCount(sale)} ürün
                         </p>
                         <p className="mt-1 max-w-2xl text-xs leading-relaxed text-espresso-800/55">

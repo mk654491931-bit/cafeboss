@@ -23,13 +23,18 @@ export default function ConfirmDialog({
     if (busy) return;
     setBusy(true);
     setError(null);
-    const result = await onConfirm();
-    setBusy(false);
-    if (result) {
-      setError(result);
-      return;
+    try {
+      const result = await onConfirm();
+      if (result) {
+        setError(result);
+        return;
+      }
+      onClose();
+    } catch {
+      setError("İşlem tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.");
+    } finally {
+      setBusy(false);
     }
-    onClose();
   }
 
   return (

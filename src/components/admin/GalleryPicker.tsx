@@ -70,7 +70,7 @@ export default function GalleryPicker({
         role="dialog"
         aria-modal="true"
         aria-labelledby="gallery-picker-title"
-        className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift sm:p-7"
+        className="flex max-h-88-safe w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift sm:p-7"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

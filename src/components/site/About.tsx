@@ -1,8 +1,7 @@
 import { Coffee, Dices, Flame, Leaf, Wind } from "lucide-react";
 import Reveal from "../Reveal";
 
-const ABOUT_IMAGE =
-  "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80";
+const ABOUT_IMAGE = "/photos/about.jpg";
 
 const PILLARS = [
   {

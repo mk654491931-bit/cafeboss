@@ -22,6 +22,7 @@ export const configHint =
 
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 const READ_RETRY_DELAYS_MS = [500, 1500];
+const REQUEST_TIMEOUT_MS = 12_000;
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
@@ -48,18 +49,52 @@ export async function fetchWithRetry(
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const requestSignal =
+      init?.signal ??
+      (typeof Request !== "undefined" && input instanceof Request
+        ? input.signal
+        : undefined);
+    const abortFromCaller = () => controller.abort();
+
+    if (requestSignal) {
+      if (requestSignal.aborted) controller.abort();
+      else requestSignal.addEventListener("abort", abortFromCaller, { once: true });
+    }
+
+    const timer = globalThis.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
+
     try {
-      const response = await fetch(input, init);
+      const response = await fetch(input, {
+        ...init,
+        signal: controller.signal,
+      });
       const shouldRetry =
         canRetry &&
         attempt < maxAttempts - 1 &&
         RETRYABLE_STATUS.has(response.status);
 
       if (!shouldRetry) return response;
-      if (response.body) await response.body.cancel().catch(() => undefined);
+      if (response.body) {
+        await response.body.cancel().catch(() => undefined);
+      }
     } catch (error) {
-      lastError = error;
-      if (!canRetry || attempt >= maxAttempts - 1) throw error;
+      // Çağıran taraf isteği bilerek iptal ettiyse yeniden denemeyelim.
+      if (requestSignal?.aborted) throw error;
+
+      lastError = timedOut
+        ? new Error(
+            "Bağlantı zaman aşımına uğradı. İnternetinizi kontrol edip tekrar deneyin.",
+          )
+        : error;
+      if (!canRetry || attempt >= maxAttempts - 1) throw lastError;
+    } finally {
+      globalThis.clearTimeout(timer);
+      requestSignal?.removeEventListener("abort", abortFromCaller);
     }
 
     await wait(

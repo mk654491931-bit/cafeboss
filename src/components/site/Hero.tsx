@@ -1,8 +1,7 @@
 import { ChevronDown, Coffee, Dices, MapPin, Sparkles } from "lucide-react";
 import Parallax from "../Parallax";
 
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1920&q=80";
+const HERO_IMAGE = "/photos/hero.jpg";
 
 const HIGHLIGHTS = [
   { icon: Coffee, text: "Günlük taze çekirdek" },
@@ -15,7 +14,7 @@ export default function Hero() {
   return (
     <section
       id="top"
-      className="relative flex min-h-[calc(100vh-4rem)] items-center overflow-hidden bg-espresso-900 md:min-h-[calc(100vh-5rem)]"
+      className="relative flex min-h-hero-safe items-center overflow-hidden bg-espresso-900"
     >
       <Parallax
         src={HERO_IMAGE}

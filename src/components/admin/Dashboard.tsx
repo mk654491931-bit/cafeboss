@@ -67,7 +67,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen-safe bg-cream-100">
       <header className="sticky top-0 z-40 border-b border-espresso-700/10 bg-cream-100/95 backdrop-blur print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">

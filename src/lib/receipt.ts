@@ -42,6 +42,7 @@ function escapeHtml(value: string): string {
 
 function receiptDateTime(closedAt?: string): string {
   const date = closedAt ? new Date(closedAt) : new Date();
+  if (Number.isNaN(date.getTime())) return "—";
   return dateTimeFormatter.format(date);
 }
 

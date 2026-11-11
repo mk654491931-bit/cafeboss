@@ -85,9 +85,15 @@ export default function KasaPanel({
   }, [products, productsLoading, kasa.usingCloud, kasa.localFallback]);
 
   function reportAction(action: Promise<string | null>) {
-    void action.then((message) => {
-      if (message) toast.error(message);
-    });
+    void action
+      .then((message) => {
+        if (message) toast.error(message);
+      })
+      .catch(() => {
+        toast.error(
+          "İşlem tamamlanamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+        );
+      });
   }
 
   const selectedTable =

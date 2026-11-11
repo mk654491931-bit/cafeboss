@@ -14,37 +14,37 @@ const CONTENT_KEY = "gallery";
 export const DEFAULT_GALLERY: GalleryImage[] = [
   {
     id: "default-interior",
-    src: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=80",
+    src: "/photos/gallery-interior.jpg",
     caption: "İç Mekân",
     alt: "Ahşap masalı sıcak kafe iç mekânı",
   },
   {
     id: "default-latte",
-    src: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=80",
+    src: "/photos/gallery-latte.jpg",
     caption: "İmza Latte",
     alt: "Latte art ile süslenmiş fincan",
   },
   {
     id: "default-snack",
-    src: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&w=900&q=80",
+    src: "/photos/gallery-snack.jpg",
     caption: "Atıştırmalıklar",
     alt: "Kahve yanında taze sandviç",
   },
   {
     id: "default-filter",
-    src: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=900&q=80",
+    src: "/photos/gallery-filter.jpg",
     caption: "Filtre Demleme",
     alt: "Cam bardakta filtre kahve",
   },
   {
     id: "default-barista",
-    src: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=900&q=80",
+    src: "/photos/gallery-barista.jpg",
     caption: "Barista Tezgâhı",
     alt: "Kafe barında kahve ekipmanları",
   },
   {
     id: "default-pastry",
-    src: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80",
+    src: "/photos/gallery-pastry.jpg",
     caption: "Tatlı Vitrini",
     alt: "Taze pişmiş hamur işleri",
   },

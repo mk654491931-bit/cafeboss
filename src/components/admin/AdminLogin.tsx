@@ -9,7 +9,7 @@ import {
 } from "../../lib/auth";
 import { isSupabaseConfigured } from "../../lib/supabase";
 
-export default function AdminLogin() {
+export default function AdminLogin({ notice }: { notice?: string | null }) {
   const previewMode = !isSupabaseConfigured;
   const [username, setUsername] = useState(
     previewMode ? ADMIN_USERNAME : "",
@@ -39,7 +39,7 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-espresso-900 px-4 py-12">
+    <div className="relative flex min-h-screen-safe items-center justify-center overflow-x-hidden bg-espresso-900 px-4 py-12">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(192,133,82,0.18),transparent_55%)]" />
 
       <div className="relative w-full max-w-md">
@@ -65,6 +65,24 @@ export default function AdminLogin() {
               </p>
             </div>
           </div>
+
+          {notice && (
+            <div
+              role="alert"
+              className="mt-6 flex items-start gap-3 rounded-2xl border border-[#9C3B2C]/25 bg-[#9C3B2C]/5 p-4 text-sm text-espresso-700"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#9C3B2C]" />
+              <div className="space-y-1">
+                <p className="font-semibold text-espresso-800">
+                  Oturum kontrolü gecikti
+                </p>
+                <p>{notice}</p>
+                <p className="text-xs text-espresso-800/60">
+                  İnternet bağlantınızı kontrol edip tekrar giriş yapabilirsiniz.
+                </p>
+              </div>
+            </div>
+          )}
 
           {previewMode && (
             <div className="mt-6 flex gap-3 rounded-2xl border border-caramel-500/40 bg-caramel-500/10 p-4 text-sm text-espresso-700">

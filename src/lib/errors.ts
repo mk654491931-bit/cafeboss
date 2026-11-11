@@ -54,6 +54,15 @@ export function toTurkishError(error: unknown): string {
     return "Oturum süreniz doldu. Lütfen çıkış yapıp tekrar giriş yapın.";
   }
   if (
+    lower.includes("timeout") ||
+    lower.includes("timed out") ||
+    lower.includes("zaman aşımı") ||
+    lower.includes("abort") ||
+    lower.includes("network is unreachable")
+  ) {
+    return "Bağlantı zaman aşımına uğradı. İnternetinizi kontrol edip tekrar deneyin.";
+  }
+  if (
     lower.includes("project is paused") ||
     lower.includes("project has been paused") ||
     lower.includes("project is inactive") ||

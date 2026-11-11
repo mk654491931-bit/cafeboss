@@ -102,9 +102,9 @@ export function formatDuration(minutes: number | null): string {
 
 export function formatReportDate(key: string): string {
   const [year, month, day] = key.split("-").map(Number);
-  return reportDateFormatter.format(
-    new Date(year, (month ?? 1) - 1, day ?? 1),
-  );
+  const date = new Date(year, (month ?? 1) - 1, day ?? 1);
+  if (Number.isNaN(date.getTime())) return key;
+  return reportDateFormatter.format(date);
 }
 
 export function saleItemCount(sale: Sale): number {

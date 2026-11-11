@@ -55,6 +55,16 @@ const FONT_PATHS = {
   bold: "/fonts/NotoSans-Bold.ttf",
 };
 
+function formatPdfTime(value: string | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleTimeString("tr-TR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 let fontsPromise: Promise<DayReportPdfFonts> | null = null;
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -848,10 +858,7 @@ function drawSalesTable(doc: jsPDF, data: DayReportData): void {
     const baseY = rowY + (rowHeight > 6 ? 4.6 : 3.9);
     drawText(
       doc,
-      new Date(sale.closedAt).toLocaleTimeString("tr-TR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      formatPdfTime(sale.closedAt),
       x + 3.5,
       baseY,
       { size: 6.4, color: ESPRESSO_SOFT },
@@ -990,22 +997,14 @@ function drawSessionTable(doc: jsPDF, data: DayReportData): void {
     const baseY = rowY + 4.1;
     drawText(
       doc,
-      session.openedAt
-        ? new Date(session.openedAt).toLocaleTimeString("tr-TR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "—",
+      formatPdfTime(session.openedAt),
       x + 3.5,
       baseY,
       { size: 6.2, color: ESPRESSO_SOFT },
     );
     drawText(
       doc,
-      new Date(session.closedAt).toLocaleTimeString("tr-TR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      formatPdfTime(session.closedAt),
       x + widths[0] + 3.5,
       baseY,
       { size: 6.2, color: ESPRESSO_SOFT },

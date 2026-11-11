@@ -41,6 +41,12 @@ const timeFormatter = new Intl.DateTimeFormat("tr-TR", {
   minute: "2-digit",
 });
 
+function formatTime(value: string | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : timeFormatter.format(date);
+}
+
 interface Props {
   table: CafeTable;
   order: TableOrder | undefined;
@@ -215,7 +221,7 @@ export default function TableOrderModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="table-order-title"
-        className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-espresso-700/10 bg-cream-50 shadow-lift"
+        className="flex max-h-94-safe w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-espresso-700/10 bg-cream-50 shadow-lift"
       >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-espresso-700/10 px-5 py-4 sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
@@ -253,9 +259,7 @@ export default function TableOrderModal({
               </div>
               <p className="mt-0.5 text-xs text-espresso-800/55">
                 {open && order
-                  ? `${itemCount} ürün · Açılış ${timeFormatter.format(
-                      new Date(order.openedAt),
-                    )}`
+                  ? `${itemCount} ürün · Açılış ${formatTime(order.openedAt)}`
                   : "Boş masa · Menüden ürün ekleyerek hesabı açın"}
               </p>
             </div>
