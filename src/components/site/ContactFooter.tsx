@@ -115,7 +115,7 @@ export default function ContactFooter() {
                   {HOURS.map((row) => (
                     <div
                       key={row.days}
-                      className="flex items-center justify-between gap-4 border-b border-cream-100/5 pb-2 last:border-0 last:pb-0"
+                      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-cream-100/5 pb-2 last:border-0 last:pb-0"
                     >
                       <dt className="text-cream-200/75">{row.days}</dt>
                       <dd className="font-medium text-cream-100">{row.time}</dd>

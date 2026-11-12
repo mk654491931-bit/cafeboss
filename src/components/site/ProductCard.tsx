@@ -25,6 +25,7 @@ export default function ProductCard({ product }: { product: Product }) {
             src={imageSource}
             alt={product.name}
             loading="lazy"
+            decoding="async"
             className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${
               available ? "" : "saturate-50"
             }`}
@@ -57,7 +58,7 @@ export default function ProductCard({ product }: { product: Product }) {
           <h3 className="font-serif text-lg leading-snug text-espresso-800">
             {product.name}
           </h3>
-          <span className="whitespace-nowrap rounded-lg bg-espresso-700/6 px-2.5 py-1 text-sm font-semibold text-espresso-700">
+          <span className="whitespace-nowrap rounded-lg bg-espresso-700/5 px-2.5 py-1 text-sm font-semibold text-espresso-700">
             {formatPrice(product.price)}
           </span>
         </div>
@@ -67,7 +68,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </p>
 
         {!available && (
-          <span className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-md bg-espresso-800/6 px-2.5 py-1.5 text-[11px] font-medium text-espresso-600">
+          <span className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-md bg-espresso-800/5 px-2.5 py-1.5 text-[11px] font-medium text-espresso-600">
             <Timer className="h-3.5 w-3.5" />
             Yakında tekrar hazır
           </span>

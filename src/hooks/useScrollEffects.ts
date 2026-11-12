@@ -5,12 +5,19 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** Live vertical scroll offset, updated at most once per animation frame. */
-export function useScrollY(): number {
+/**
+ * Live vertical scroll offset, updated at most once per animation frame.
+ * `enabled` kapatıldığında hiç dinleyici eklenmez; düşük güçlü telefonlarda
+ * sürekli yeniden çizimi önler.
+ */
+export function useScrollY(enabled = true): number {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    if (!enabled || prefersReducedMotion()) {
+      setOffset(0);
+      return;
+    }
 
     let frame = 0;
     const update = () => {
@@ -27,7 +34,7 @@ export function useScrollY(): number {
       window.removeEventListener("scroll", onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [enabled]);
 
   return offset;
 }

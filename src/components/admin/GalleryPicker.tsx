@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Images, Loader2, X } from "lucide-react";
 import { fetchGallery, type GalleryImage } from "../../lib/gallery";
 import { ACCEPTED_IMAGE_TYPES, uploadImage } from "../../lib/images";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 interface Props {
   /** Seçilen fotoğrafın adresi. */
@@ -23,6 +24,7 @@ export default function GalleryPicker({
   allowUpload = false,
   title = "Galeriden Seç",
 }: Props) {
+  useBodyScrollLock();
   const inputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ export default function GalleryPicker({
   }
 
   return (
-    <div className="fixed inset-0 z-[96] flex items-end justify-center bg-ink/60 p-4 backdrop-blur-sm sm:items-center">
+    <div className="modal-safe fixed inset-0 z-[96] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
@@ -110,13 +112,13 @@ export default function GalleryPicker({
           </button>
         )}
 
-        <div className="-mr-2 mt-5 flex-1 overflow-y-auto pr-2">
+        <div className="-mr-2 mt-5 flex-1 overflow-y-auto overscroll-contain pr-2">
           {loading ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="aspect-square animate-pulse rounded-2xl bg-espresso-700/8"
+                  className="aspect-square animate-pulse rounded-2xl bg-espresso-700/10"
                 />
               ))}
             </div>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import ImageField from "./ImageField";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 import { CATEGORIES, type ProductInput } from "../../lib/types";
 
 interface Props {
@@ -18,6 +19,7 @@ interface FormErrors {
 const EMPTY = { name: "", category: "", price: "", description: "", image_url: "" };
 
 export default function AddProductModal({ onClose, onSubmit }: Props) {
+  useBodyScrollLock();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -87,12 +89,12 @@ export default function AddProductModal({ onClose, onSubmit }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 p-4 backdrop-blur-sm sm:items-center">
+    <div className="modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-product-title"
-        className="max-h-92-safe w-full max-w-lg overflow-y-auto rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift sm:p-8"
+        className="max-h-92-safe w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift sm:p-8"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

@@ -49,7 +49,7 @@ function CategoryEditor({
         onChange={(event) => void handleChange(event)}
         disabled={saving}
         aria-label={`${product.name} kategorisi`}
-        className="cursor-pointer appearance-none truncate rounded-md border border-espresso-700/15 bg-white/70 py-0.5 pl-2 pr-6 text-xs font-semibold text-espresso-700 transition hover:border-espresso-700/35 focus:outline-none focus:ring-2 focus:ring-caramel-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-8 cursor-pointer appearance-none truncate rounded-md border border-espresso-700/15 bg-white/70 py-1 pl-2 pr-6 text-xs font-semibold text-espresso-700 transition hover:border-espresso-700/35 focus:outline-none focus:ring-2 focus:ring-caramel-500/40 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {options.map((category) => (
           <option key={category} value={category}>
@@ -90,7 +90,7 @@ function PhotoPicker({
 
   return (
     <div className="relative h-11 w-11 shrink-0">
-      <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-espresso-700/8 text-caramel-600">
+      <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-espresso-700/10 text-caramel-600">
         {product.image_url ? (
           <img
             src={product.image_url}
@@ -109,12 +109,12 @@ function PhotoPicker({
         onClick={() => setPicking(true)}
         disabled={busy}
         aria-label={`${product.name} fotoğrafını değiştir`}
-        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-espresso-700 text-cream-100 shadow-soft transition hover:bg-espresso-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+        className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-espresso-700 text-cream-100 shadow-soft transition hover:bg-espresso-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
       >
         {busy ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <Camera className="h-3 w-3" />
+          <Camera className="h-3.5 w-3.5" />
         )}
       </button>
       {picking && (
@@ -228,7 +228,7 @@ function PriceEditor({
       onClick={() => setEditing(true)}
       disabled={saving}
       aria-label={`${product.name} fiyatını düzenle`}
-      className="group inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-espresso-700 transition hover:bg-espresso-700/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+      className="group inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-espresso-700 transition hover:bg-espresso-700/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
     >
       {saving ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin text-caramel-600" />

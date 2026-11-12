@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Lock, Menu as MenuIcon, X } from "lucide-react";
 import { useActiveSection, useScrolled } from "../../hooks/useScrollEffects";
@@ -16,9 +16,29 @@ export default function Header() {
   const scrolled = useScrolled(24);
   const active = useActiveSection(NAV_ITEMS.map((item) => item.id));
 
+  // Açık menü masaüstü genişliğine geçince ya da Escape'e basınca kapansın;
+  // aksi hâlde görünmez bir katman açık kalabiliyordu.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const onChange = () => {
+      if (desktop.matches) setOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    desktop.addEventListener("change", onChange);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", onChange);
+    };
+  }, [open]);
+
   return (
     <header
-      className={`sticky top-0 z-50 border-b backdrop-blur-md transition-all duration-300 ${
+      className={`pt-safe sticky top-0 z-50 border-b backdrop-blur-md transition-all duration-300 ${
         scrolled
           ? "border-espresso-700/10 bg-cream-100/95 shadow-soft"
           : "border-espresso-700/5 bg-cream-100/80"
@@ -76,7 +96,7 @@ export default function Header() {
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-espresso-700/15 text-espresso-700 transition hover:bg-espresso-700 hover:text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-espresso-700/15 text-espresso-700 transition hover:bg-espresso-700 hover:text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 md:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
           </button>
@@ -85,8 +105,10 @@ export default function Header() {
 
       <div
         id="mobile-nav"
-        className={`overflow-hidden border-t border-espresso-700/10 bg-cream-100/98 transition-[max-height,opacity] duration-300 md:hidden ${
-          open ? "max-h-96 opacity-100" : "invisible max-h-0 opacity-0"
+        className={`border-t border-espresso-700/10 bg-cream-100/95 transition-[max-height,opacity] duration-300 md:hidden ${
+          open
+            ? "max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain opacity-100"
+            : "invisible max-h-0 overflow-hidden opacity-0"
         }`}
       >
         <nav
@@ -98,7 +120,7 @@ export default function Header() {
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className={`rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-espresso-700/5 hover:text-espresso-900 ${
+              className={`flex min-h-11 items-center rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-espresso-700/5 hover:text-espresso-900 ${
                 active === item.id
                   ? "bg-espresso-700/5 text-espresso-900"
                   : "text-espresso-700"

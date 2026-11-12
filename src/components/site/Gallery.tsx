@@ -33,13 +33,14 @@ export default function Gallery() {
                   src={shot.src}
                   alt={shot.alt || shot.caption}
                   loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-espresso-900/85 via-espresso-900/10 to-transparent opacity-80 transition group-hover:opacity-95" />
-                <figcaption className="absolute inset-x-4 bottom-4 translate-y-1 text-cream-50 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                <figcaption className="caption-reveal absolute inset-x-3 bottom-3 translate-y-1 text-cream-50 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 sm:inset-x-4 sm:bottom-4">
                   <span className="font-serif text-base">{shot.caption}</span>
                 </figcaption>
               </figure>

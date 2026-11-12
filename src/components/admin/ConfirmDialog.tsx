@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Loader2, TriangleAlert } from "lucide-react";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 interface Props {
   title: string;
@@ -16,6 +17,7 @@ export default function ConfirmDialog({
   onConfirm,
   onClose,
 }: Props) {
+  useBodyScrollLock();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,14 +40,14 @@ export default function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm">
+    <div className="modal-safe fixed inset-0 z-[95] flex items-center justify-center bg-ink/60 backdrop-blur-sm">
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        className="w-full max-w-sm rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift"
+        className="max-h-92-safe w-full max-w-sm overflow-y-auto overscroll-contain rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift"
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-espresso-700/8 text-caramel-600">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-espresso-700/10 text-caramel-600">
           <TriangleAlert className="h-5 w-5" />
         </span>
         <h2 id="confirm-title" className="mt-4 font-serif text-xl text-espresso-800">

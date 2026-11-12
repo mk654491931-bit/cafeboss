@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ConfirmDialog from "../ConfirmDialog";
 import { useToast } from "../../Toast";
+import { useBodyScrollLock } from "../../../hooks/useBodyScrollLock";
 import { categoryIcon } from "../../../lib/categoryIcons";
 import { formatPrice } from "../../../lib/format";
 import {
@@ -163,6 +164,7 @@ export default function TableOrderModal({
   onCloseBill,
   onClose,
 }: Props) {
+  useBodyScrollLock();
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES);
@@ -216,7 +218,7 @@ export default function TableOrderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 p-3 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
@@ -295,7 +297,7 @@ export default function TableOrderModal({
                 className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
                   active
                     ? "bg-espresso-700 text-cream-100 shadow-soft"
-                    : "text-espresso-700 hover:bg-espresso-700/8"
+                    : "text-espresso-700 hover:bg-espresso-700/10"
                 }`}
               >
                 {pane.label}
@@ -303,7 +305,7 @@ export default function TableOrderModal({
                   className={`rounded-full px-1.5 text-[10px] ${
                     active
                       ? "bg-cream-100/20 text-cream-100"
-                      : "bg-espresso-700/8 text-espresso-600"
+                      : "bg-espresso-700/10 text-espresso-600"
                   }`}
                 >
                   {pane.count}
@@ -315,7 +317,7 @@ export default function TableOrderModal({
 
         <div
           ref={scrollRef}
-          className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[1.15fr_0.85fr] lg:overflow-hidden"
+          className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain lg:grid-cols-[1.15fr_0.85fr] lg:overflow-hidden"
         >
           <section
             className={`border-b border-espresso-700/10 lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r ${
@@ -347,7 +349,7 @@ export default function TableOrderModal({
                 </span>
               </div>
 
-              <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
+              <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto overscroll-x-contain px-1">
                 {[ALL_CATEGORIES, ...categories].map((category) => {
                   const isActive = activeCategory === category;
                   const count =
@@ -371,7 +373,7 @@ export default function TableOrderModal({
                         className={`rounded-full px-1.5 text-[10px] ${
                           isActive
                             ? "bg-cream-100/20 text-cream-100"
-                            : "bg-espresso-700/8 text-espresso-600"
+                            : "bg-espresso-700/10 text-espresso-600"
                         }`}
                       >
                         {count}
@@ -507,9 +509,9 @@ export default function TableOrderModal({
                           type="button"
                           onClick={() => onDecrease(line.productId)}
                           aria-label={`${line.name} adedini azalt`}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-espresso-700/15 bg-white text-espresso-700 transition hover:border-espresso-700/35 hover:bg-espresso-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-espresso-700/15 bg-white text-espresso-700 transition hover:border-espresso-700/35 hover:bg-espresso-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
                         >
-                          <Minus className="h-3.5 w-3.5" />
+                          <Minus className="h-4 w-4" />
                         </button>
                         <span className="w-7 text-center text-sm font-semibold text-espresso-800">
                           {line.quantity}
@@ -518,9 +520,9 @@ export default function TableOrderModal({
                           type="button"
                           onClick={() => onIncrease(line.productId)}
                           aria-label={`${line.name} adedini artır`}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-espresso-700/15 bg-white text-espresso-700 transition hover:border-espresso-700/35 hover:bg-espresso-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-espresso-700/15 bg-white text-espresso-700 transition hover:border-espresso-700/35 hover:bg-espresso-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
                         >
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
 
@@ -528,7 +530,7 @@ export default function TableOrderModal({
                         type="button"
                         onClick={() => onRemoveLine(line.productId)}
                         aria-label={`${line.name} satırını kaldır`}
-                        className="rounded-lg p-1.5 text-espresso-600/50 transition hover:bg-espresso-700/5 hover:text-espresso-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+                        className="rounded-lg p-2 text-espresso-600/50 transition hover:bg-espresso-700/5 hover:text-espresso-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

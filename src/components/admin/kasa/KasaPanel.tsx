@@ -18,6 +18,7 @@ import {
 import ConfirmDialog from "../ConfirmDialog";
 import TableOrderModal from "./TableOrderModal";
 import { useToast } from "../../Toast";
+import { useBodyScrollLock } from "../../../hooks/useBodyScrollLock";
 import { formatPrice } from "../../../lib/format";
 import { isSupabaseConfigured } from "../../../lib/supabase";
 import {
@@ -611,7 +612,7 @@ function TableCard({
         type="button"
         onClick={onRemove}
         aria-label={`${table.label} masasını kaldır`}
-        className="absolute right-1.5 top-1.5 rounded-full border border-espresso-700/10 bg-cream-50/90 p-1.5 text-espresso-600/55 opacity-60 shadow-sm transition hover:border-espresso-500/40 hover:text-espresso-800 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 sm:opacity-0 sm:group-hover:opacity-100"
+        className="absolute right-1.5 top-1.5 rounded-full border border-espresso-700/10 bg-cream-50/90 p-2 text-espresso-600/55 opacity-60 shadow-sm transition hover:border-espresso-500/40 hover:text-espresso-800 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <Trash2 className="h-3 w-3" />
       </button>
@@ -633,6 +634,7 @@ function AddTableModal({
     label: string,
   ) => Promise<string | null>;
 }) {
+  useBodyScrollLock();
   const [section, setSection] = useState<TableSection>(defaultSection);
   const [label, setLabel] = useState(() =>
     nextTableLabel(tables, defaultSection),
@@ -666,12 +668,12 @@ function AddTableModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-end justify-center bg-ink/60 p-4 backdrop-blur-sm sm:items-center">
+    <div className="modal-safe fixed inset-0 z-[95] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-table-title"
-        className="w-full max-w-md rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift sm:p-7"
+        className="max-h-94-safe w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-espresso-700/10 bg-cream-50 p-6 shadow-lift sm:p-7"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

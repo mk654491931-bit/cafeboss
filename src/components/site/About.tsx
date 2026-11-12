@@ -69,6 +69,7 @@ export default function About() {
                 src={ABOUT_IMAGE}
                 alt="Barista fincana süt döküyor"
                 loading="lazy"
+                decoding="async"
                 className="h-64 w-full object-cover sm:h-80"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
@@ -77,7 +78,7 @@ export default function About() {
               <div className="grid gap-5 p-6 sm:p-8">
                 {PILLARS.map(({ icon: Icon, title, text }) => (
                   <div key={title} className="flex gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-espresso-700/8 text-caramel-600">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-espresso-700/10 text-caramel-600">
                       <Icon className="h-5 w-5" />
                     </span>
                     <div>

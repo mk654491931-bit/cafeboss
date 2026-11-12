@@ -83,7 +83,7 @@ export default function MenuSection({
           <div
             role="tablist"
             aria-label="Menü kategorileri"
-            className="no-scrollbar -mx-4 mt-9 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0"
+            className="no-scrollbar -mx-4 mt-9 flex gap-2 overflow-x-auto overscroll-x-contain px-4 pb-2 sm:mx-0 sm:px-0"
           >
             {tabs.map((tab) => {
               const isActive = tab === activeCategory;
@@ -109,7 +109,7 @@ export default function MenuSection({
                     className={`rounded-full px-1.5 text-xs ${
                       isActive
                         ? "bg-cream-100/20 text-cream-100"
-                        : "bg-espresso-700/8 text-espresso-600"
+                        : "bg-espresso-700/10 text-espresso-600"
                     }`}
                   >
                     {count}
