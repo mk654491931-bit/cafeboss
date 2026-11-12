@@ -38,7 +38,7 @@ export default function Header() {
 
   return (
     <header
-      className={`pt-safe sticky top-0 z-50 border-b backdrop-blur-md transition-all duration-300 ${
+      className={`pt-safe sticky top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 lg:backdrop-blur-md ${
         scrolled
           ? "border-espresso-700/10 bg-cream-100/95 shadow-soft"
           : "border-espresso-700/5 bg-cream-100/80"

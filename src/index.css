@@ -166,7 +166,6 @@
     transition:
       opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
       transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: opacity, transform;
   }
 
   .reveal-up {
@@ -227,6 +226,21 @@
   .caption-reveal {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Dokunmatik cihazlarda (telefon/tablet) giriş animasyonlarını tamamen kapat:
+   onlarca katman ve IntersectionObserver, düşük güçlü cihazlarda kaydırmayı
+   ağırlaştırıyordu. İçerik her koşulda görünür kalır. */
+@media (max-width: 1023px), (hover: none) {
+  .reveal,
+  .reveal-up,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 

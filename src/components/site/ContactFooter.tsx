@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Clock, Dices, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import Reveal from "../Reveal";
 
@@ -14,6 +15,9 @@ const HOURS = [
 ];
 
 export default function ContactFooter() {
+  // Google Haritalar iframe'i mobilde ağır; yalnızca istendiğinde yüklensin.
+  const [mapLoaded, setMapLoaded] = useState(false);
+
   return (
     <footer id="iletisim" className="bg-espresso-900 text-cream-200">
       <div className="container-page section">
@@ -144,13 +148,32 @@ export default function ContactFooter() {
                 </a>
               </div>
               <div className="relative h-72 w-full sm:h-[26rem] lg:h-[calc(100%-4rem)] lg:min-h-[22rem]">
-                <iframe
-                  title="Boss Cafe konumu — Google Haritalar"
-                  src={MAP_SRC}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  className="absolute inset-0 h-full w-full border-0 grayscale-[0.2]"
-                />
+                {mapLoaded ? (
+                  <iframe
+                    title="Boss Cafe konumu — Google Haritalar"
+                    src={MAP_SRC}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="absolute inset-0 h-full w-full border-0 grayscale-[0.2]"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setMapLoaded(true)}
+                    className="group absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_30%_20%,rgba(192,133,82,0.2),transparent_55%),radial-gradient(circle_at_75%_80%,rgba(49,92,76,0.35),transparent_50%)] px-6 text-center transition hover:bg-espresso-700/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
+                  >
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-caramel-500/15 text-caramel-400 transition group-hover:scale-105">
+                      <MapPin className="h-6 w-6" />
+                    </span>
+                    <span className="font-serif text-lg text-cream-50">
+                      Haritayı Yükle
+                    </span>
+                    <span className="max-w-xs text-xs leading-relaxed text-cream-200/60">
+                      Google Haritalar yalnızca istediğinizde yüklenir; sayfa
+                      daha hızlı açılır.
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </Reveal>

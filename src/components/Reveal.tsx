@@ -23,7 +23,12 @@ export default function Reveal({
     const element = ref.current;
     if (!element) return;
 
-    if (typeof IntersectionObserver === "undefined") {
+    // Telefon/tablette giriş animasyonu CSS'te kapalı; gereksiz observer kurmayalım.
+    if (
+      typeof IntersectionObserver === "undefined" ||
+      (window.matchMedia &&
+        window.matchMedia("(max-width: 1023px), (hover: none)").matches)
+    ) {
       setVisible(true);
       return;
     }

@@ -1,6 +1,7 @@
 import { authenticatedClient, supabase } from "./supabase";
 import { toTurkishError } from "./errors";
 import { createKasaId, DEMO_MENU } from "./kasa";
+import { readLocalValue, writeLocalValue } from "./localStore";
 import type { Product, ProductInput } from "./types";
 
 const COLUMNS =
@@ -56,42 +57,41 @@ function isLocalProduct(value: unknown): value is Product {
   );
 }
 
-function readLocalMenu(): Product[] | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(LOCAL_MENU_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return parsed.filter(isLocalProduct);
-  } catch {
-    return null;
-  }
+async function readLocalMenu(): Promise<Product[] | null> {
+  const parsed = await readLocalValue<unknown>(LOCAL_MENU_KEY);
+  if (!Array.isArray(parsed)) return null;
+  const rows = parsed.filter(isLocalProduct);
+  // Kayıt bozulmuşsa boş menü göstermek yerine yedeğe/örnek menüye dön.
+  if (rows.length === 0 && parsed.length > 0) return null;
+  return rows;
 }
 
-function writeLocalMenu(products: Product[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(LOCAL_MENU_KEY, JSON.stringify(products));
-  } catch {
-    // Depolama kapalı ya da dolu olabilir; sayfa bellekte çalışmaya devam eder.
-  }
+async function writeLocalMenu(products: Product[]): Promise<void> {
+  await writeLocalValue(LOCAL_MENU_KEY, products);
 }
 
-function localMenu(): Product[] {
-  const stored = readLocalMenu();
+async function localMenu(): Promise<Product[]> {
+  const stored = await readLocalMenu();
   if (stored) return stored;
+
   const seeded = [...DEMO_MENU];
-  writeLocalMenu(seeded);
+  try {
+    await writeLocalMenu(seeded);
+  } catch {
+    // Depolama yazamasa bile menü bu oturumda görünsün.
+  }
   return seeded;
 }
 
-function updateLocalProduct(id: string, patch: Partial<Product>): void {
-  const current = localMenu();
+async function updateLocalProduct(
+  id: string,
+  patch: Partial<Product>,
+): Promise<void> {
+  const current = await localMenu();
   if (!current.some((product) => product.id === id)) {
     throw new Error("Kayıt bulunamadı. Menüyü yenileyip tekrar deneyin.");
   }
-  writeLocalMenu(
+  await writeLocalMenu(
     current.map((product) =>
       product.id === id ? { ...product, ...patch } : product,
     ),
@@ -100,7 +100,7 @@ function updateLocalProduct(id: string, patch: Partial<Product>): void {
 
 /** Reads every product, grouped by category then name. */
 export async function fetchProducts(): Promise<Product[]> {
-  if (!supabase) return [...localMenu()].sort(byCategoryThenName);
+  if (!supabase) return [...(await localMenu())].sort(byCategoryThenName);
 
   const { data, error } = await supabase
     .from("products")
@@ -124,7 +124,7 @@ export async function createProduct(input: ProductInput): Promise<Product> {
       image_url: input.image_url || null,
       is_available: true,
     };
-    writeLocalMenu([...localMenu(), product]);
+    await writeLocalMenu([...(await localMenu()), product]);
     return product;
   }
 
@@ -152,7 +152,7 @@ export async function updateProductPrice(
   price: number,
 ): Promise<void> {
   if (!supabase) {
-    updateLocalProduct(id, { price });
+    await updateLocalProduct(id, { price });
     return;
   }
 
@@ -175,7 +175,7 @@ export async function updateProductCategory(
   category: string,
 ): Promise<void> {
   if (!supabase) {
-    updateLocalProduct(id, { category });
+    await updateLocalProduct(id, { category });
     return;
   }
 
@@ -200,7 +200,7 @@ export async function updateProductImage(
   imageUrl: string | null,
 ): Promise<void> {
   if (!supabase) {
-    updateLocalProduct(id, { image_url: imageUrl });
+    await updateLocalProduct(id, { image_url: imageUrl });
     return;
   }
 
@@ -223,7 +223,7 @@ export async function updateProductAvailability(
   isAvailable: boolean,
 ): Promise<void> {
   if (!supabase) {
-    updateLocalProduct(id, { is_available: isAvailable });
+    await updateLocalProduct(id, { is_available: isAvailable });
     return;
   }
 
@@ -243,11 +243,11 @@ export async function updateProductAvailability(
 /** Removes a product permanently. */
 export async function deleteProduct(id: string): Promise<void> {
   if (!supabase) {
-    const current = localMenu();
+    const current = await localMenu();
     if (!current.some((product) => product.id === id)) {
       throw new Error("Ürün silinemedi: kayıt bulunamadı.");
     }
-    writeLocalMenu(current.filter((product) => product.id !== id));
+    await writeLocalMenu(current.filter((product) => product.id !== id));
     return;
   }
 

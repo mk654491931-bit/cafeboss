@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useScrollY } from "../hooks/useScrollEffects";
+import { useEffect, useRef, useState } from "react";
 
 interface ParallaxProps {
   src: string;
@@ -23,10 +22,11 @@ export default function Parallax({
   strength = 0.18,
   className = "",
 }: ParallaxProps) {
-  // Dokunmatik telefonlarda her kaydırma karesinde yeniden çizmek yerine
-  // görsel sabit kalsın; pil ve akıcılık açısından daha güvenli.
+  // Dokunmatik telefonlarda parallax kapalı: görsel ne büyütülür ne de her
+  // kaydırma karesinde yeniden çizilir. Masaüstünde de React state'i yerine
+  // doğrudan DOM transform'u güncellenir.
   const [enabled, setEnabled] = useState(canParallax);
-  const offset = useScrollY(enabled);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!window.matchMedia) return;
@@ -36,14 +36,38 @@ export default function Parallax({
     return () => query.removeEventListener("change", onChange);
   }, []);
 
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image) return;
+
+    if (!enabled) {
+      image.style.transform = "scale(1)";
+      return;
+    }
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      image.style.transform = `translate3d(0, ${Math.round(window.scrollY * strength)}px, 0) scale(1.15)`;
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [enabled, strength]);
+
   return (
     <img
+      ref={imageRef}
       src={src}
       alt={alt}
-      style={{
-        transform: `translate3d(0, ${Math.round(offset * strength)}px, 0) scale(1.15)`,
-      }}
-      className={`will-change-transform ${className}`}
+      className={`${enabled ? "will-change-transform" : ""} ${className}`}
       onError={(event) => {
         event.currentTarget.style.display = "none";
       }}

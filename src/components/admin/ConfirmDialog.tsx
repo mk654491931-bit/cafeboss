@@ -40,7 +40,7 @@ export default function ConfirmDialog({
   }
 
   return (
-    <div className="modal-safe fixed inset-0 z-[95] flex items-center justify-center bg-ink/60 backdrop-blur-sm">
+    <div className="modal-safe fixed inset-0 z-[95] flex items-center justify-center bg-ink/65">
       <div
         role="alertdialog"
         aria-modal="true"

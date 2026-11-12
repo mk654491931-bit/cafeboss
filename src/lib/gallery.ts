@@ -1,4 +1,5 @@
 import { authenticatedClient, supabase } from "./supabase";
+import { readLocalValue, writeLocalValue } from "./localStore";
 
 export interface GalleryImage {
   id: string;
@@ -68,25 +69,11 @@ function isGalleryImage(value: unknown): value is GalleryImage {
   );
 }
 
-function readLocal(): GalleryImage[] | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    const rows = parsed.filter(isGalleryImage);
-    return rows.length > 0 ? rows : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeLocal(images: GalleryImage[]): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(images));
-  } catch {
-    // Kalıcılık kritik değil; devam et.
-  }
+async function readLocal(): Promise<GalleryImage[] | null> {
+  const parsed = await readLocalValue<unknown>(STORAGE_KEY);
+  if (!Array.isArray(parsed)) return null;
+  const rows = parsed.filter(isGalleryImage);
+  return rows.length > 0 ? rows : null;
 }
 
 /**
@@ -113,7 +100,7 @@ export async function fetchGallery(): Promise<GalleryImage[]> {
     }
   }
 
-  return readLocal() ?? DEFAULT_GALLERY;
+  return (await readLocal()) ?? DEFAULT_GALLERY;
 }
 
 /**
@@ -121,7 +108,7 @@ export async function fetchGallery(): Promise<GalleryImage[]> {
  * Supabase varsa `site_content` kaydını da günceller.
  */
 export async function saveGallery(images: GalleryImage[]): Promise<void> {
-  writeLocal(images);
+  await writeLocalValue(STORAGE_KEY, images);
 
   if (!supabase) return;
 

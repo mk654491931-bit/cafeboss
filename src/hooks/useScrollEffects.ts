@@ -1,44 +1,5 @@
 import { useEffect, useState } from "react";
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/**
- * Live vertical scroll offset, updated at most once per animation frame.
- * `enabled` kapatıldığında hiç dinleyici eklenmez; düşük güçlü telefonlarda
- * sürekli yeniden çizimi önler.
- */
-export function useScrollY(enabled = true): number {
-  const [offset, setOffset] = useState(0);
-
-  useEffect(() => {
-    if (!enabled || prefersReducedMotion()) {
-      setOffset(0);
-      return;
-    }
-
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      setOffset(window.scrollY);
-    };
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, [enabled]);
-
-  return offset;
-}
-
 /**
  * True once the page is scrolled past `threshold` pixels.
  * Only re-renders when the boolean actually flips, not on every scroll frame.
@@ -66,36 +27,6 @@ export function useScrolled(threshold = 24): boolean {
   }, [threshold]);
 
   return scrolled;
-}
-
-/** Reading progress of the page, from 0 to 1. */
-export function useScrollProgress(): number {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const doc = document.documentElement;
-      const max = doc.scrollHeight - doc.clientHeight;
-      const next = max > 0 ? doc.scrollTop / max : 0;
-      setProgress(Math.min(1, Math.max(0, next)));
-    };
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
-  return progress;
 }
 
 /** Id of the section currently nearest the top of the viewport (scroll spy). */

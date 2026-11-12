@@ -89,7 +89,7 @@ export default function AddProductModal({ onClose, onSubmit }: Props) {
   }
 
   return (
-    <div className="modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center">
+    <div className="modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-ink/65 sm:items-center">
       <div
         role="dialog"
         aria-modal="true"

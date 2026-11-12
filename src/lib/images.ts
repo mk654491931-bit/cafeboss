@@ -6,8 +6,10 @@ import {
 
 /** Bucket used for admin uploads (see supabase/schema.sql). */
 const BUCKET = "site-images";
-const MAX_DIMENSION = 1400;
-const JPEG_QUALITY = 0.82;
+// Menü/galeri kartları en fazla ~400 px genişlikte gösteriliyor; daha büyük
+// görseller tarayıcı deposunu ve mobil bellek kullanımını gereksiz şişiriyor.
+const MAX_DIMENSION = 1200;
+const JPEG_QUALITY = 0.78;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const SKIP_COMPRESS_BYTES = 400 * 1024;
 

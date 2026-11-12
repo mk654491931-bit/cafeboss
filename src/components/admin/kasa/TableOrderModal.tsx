@@ -218,7 +218,7 @@ export default function TableOrderModal({
   }
 
   return (
-    <div className="modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-ink/60 backdrop-blur-sm sm:items-center">
+    <div className="modal-safe fixed inset-0 z-[90] flex items-end justify-center bg-ink/65 sm:items-center">
       <div
         role="dialog"
         aria-modal="true"
@@ -324,7 +324,7 @@ export default function TableOrderModal({
               mobilePane === "bill" ? "hidden lg:block" : ""
             }`}
           >
-            <div className="sticky top-0 z-10 space-y-3 bg-cream-50/95 px-4 py-4 backdrop-blur sm:px-6">
+            <div className="sticky top-0 z-10 space-y-3 bg-cream-50/95 px-4 py-4 sm:px-6">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-espresso-600/60" />
                 <label htmlFor="order-menu-search" className="sr-only">
@@ -540,7 +540,7 @@ export default function TableOrderModal({
               )}
             </div>
 
-            <div className="sticky bottom-0 z-10 shrink-0 border-t border-espresso-700/10 bg-cream-50/95 px-5 py-4 backdrop-blur lg:static">
+            <div className="sticky bottom-0 z-10 shrink-0 border-t border-espresso-700/10 bg-cream-50/95 px-5 py-4 lg:static">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm text-espresso-800/60">Toplam</span>
                 <span className="font-serif text-3xl text-espresso-900">
