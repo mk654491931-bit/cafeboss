@@ -229,6 +229,12 @@
   }
 }
 
+/* Kasa ürün kataloğunda ekran dışındaki kartların boyanmasını ertele. */
+.pos-product-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 260px;
+}
+
 /* Dokunmatik cihazlarda (telefon/tablet) giriş animasyonlarını tamamen kapat:
    onlarca katman ve IntersectionObserver, düşük güçlü cihazlarda kaydırmayı
    ağırlaştırıyordu. İçerik her koşulda görünür kalır. */

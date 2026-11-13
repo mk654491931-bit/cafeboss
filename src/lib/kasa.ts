@@ -496,6 +496,113 @@ export function paymentLabel(method: PaymentMethod | undefined): string {
   return method === "card" ? PAYMENT_LABELS.card : PAYMENT_LABELS.cash;
 }
 
+/** Yeni ürünü adisyona ekler; aynı ürün varsa adedini artırır. */
+export function addItemToKasaState(
+  state: KasaState,
+  tableId: string,
+  product: Product,
+  addedAt = new Date().toISOString(),
+): KasaState {
+  if (!state.tables.some((table) => table.id === tableId)) return state;
+
+  const order = state.orders[tableId];
+  let lines: OrderLine[];
+
+  if (!order) {
+    lines = [
+      {
+        productId: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        quantity: 1,
+        addedAt,
+      },
+    ];
+  } else {
+    const existing = order.lines.find(
+      (line) => line.productId === product.id,
+    );
+    lines = existing
+      ? order.lines.map((line) =>
+          line.productId === product.id
+            ? { ...line, quantity: line.quantity + 1 }
+            : line,
+        )
+      : [
+          ...order.lines,
+          {
+            productId: product.id,
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            quantity: 1,
+            addedAt,
+          },
+        ];
+  }
+
+  return {
+    ...state,
+    orders: {
+      ...state.orders,
+      [tableId]: {
+        tableId,
+        openedAt: order?.openedAt ?? addedAt,
+        lines,
+      },
+    },
+  };
+}
+
+/** Adet artırır/azaltır; sıfıra düşen satırı kaldırır. */
+export function changeKasaItemQuantity(
+  state: KasaState,
+  tableId: string,
+  productId: string,
+  delta: number,
+): KasaState {
+  const order = state.orders[tableId];
+  if (!order || delta === 0) return state;
+
+  const lines = order.lines
+    .map((line) =>
+      line.productId === productId
+        ? { ...line, quantity: line.quantity + delta }
+        : line,
+    )
+    .filter((line) => line.quantity > 0);
+
+  const orders = { ...state.orders };
+  if (lines.length === 0) {
+    delete orders[tableId];
+  } else {
+    orders[tableId] = { ...order, lines };
+  }
+
+  return { ...state, orders };
+}
+
+/** Bir ürün satırını adisyondan tamamen kaldırır. */
+export function removeKasaOrderLine(
+  state: KasaState,
+  tableId: string,
+  productId: string,
+): KasaState {
+  const order = state.orders[tableId];
+  if (!order) return state;
+
+  const lines = order.lines.filter((line) => line.productId !== productId);
+  const orders = { ...state.orders };
+  if (lines.length === 0) {
+    delete orders[tableId];
+  } else {
+    orders[tableId] = { ...order, lines };
+  }
+
+  return { ...state, orders };
+}
+
 export function orderTotal(order: TableOrder | undefined): number {
   if (!order) return 0;
   return order.lines.reduce((sum, line) => sum + line.price * line.quantity, 0);

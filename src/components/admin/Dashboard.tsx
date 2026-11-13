@@ -43,7 +43,6 @@ export default function Dashboard() {
     changeAvailability,
     removeProduct,
   } = useMenu();
-  const kasa = useKasa();
 
   const [view, setView] = useState<View>("products");
   const [showAdd, setShowAdd] = useState(false);
@@ -181,15 +180,14 @@ export default function Dashboard() {
         {view === "gallery" ? (
           <GalleryEditor />
         ) : view === "kasa" ? (
-          <KasaPanel
-            kasa={kasa}
+          <KasaView
             products={products}
             productsLoading={loading}
             menuError={error}
             onOpenReport={() => setView("report")}
           />
         ) : view === "report" ? (
-          <DayReport kasa={kasa} onBackToKasa={() => setView("kasa")} />
+          <DayReportView onBackToKasa={() => setView("kasa")} />
         ) : (
           <>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
@@ -313,4 +311,37 @@ export default function Dashboard() {
       )}
     </div>
   );
+}
+
+/**
+ * Kasa durumu yalnızca bu iki görünümde tutulur. Böylece bir ürün
+ * eklendiğinde yönetim panelinin başlığı, sekmeleri ve menü görünümü
+ * gereksiz yere yeniden render edilmez.
+ */
+function KasaView({
+  products,
+  productsLoading,
+  menuError,
+  onOpenReport,
+}: {
+  products: Product[];
+  productsLoading: boolean;
+  menuError: string | null;
+  onOpenReport: () => void;
+}) {
+  const kasa = useKasa();
+  return (
+    <KasaPanel
+      kasa={kasa}
+      products={products}
+      productsLoading={productsLoading}
+      menuError={menuError}
+      onOpenReport={onOpenReport}
+    />
+  );
+}
+
+function DayReportView({ onBackToKasa }: { onBackToKasa: () => void }) {
+  const kasa = useKasa();
+  return <DayReport kasa={kasa} onBackToKasa={onBackToKasa} />;
 }

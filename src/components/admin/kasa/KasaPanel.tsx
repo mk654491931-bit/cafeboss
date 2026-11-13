@@ -1,4 +1,12 @@
-import { useMemo, useState, type FormEvent } from "react";
+import {
+  memo,
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -56,20 +64,28 @@ export default function KasaPanel({
   onOpenReport,
 }: KasaPanelProps) {
   const toast = useToast();
+  const ordersRef = useRef(kasa.orders);
+  ordersRef.current = kasa.orders;
+  // Modal açıkken arkadaki masa haritası ve özeti sabit tut: görünmeyen
+  // kartların her ürün eklemesinde yeniden çizilmesi gereksiz. Kapatınca
+  // güncel durum bir kerede yansır.
+  const frozenOrdersRef = useRef<Record<string, TableOrder> | null>(null);
+  const deferredOrders = useDeferredValue(kasa.orders);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const visibleOrders = frozenOrdersRef.current ?? deferredOrders;
   const [addSection, setAddSection] = useState<TableSection | null>(null);
   const [pendingRemove, setPendingRemove] = useState<CafeTable | null>(null);
 
   const totals = useMemo(() => {
     const openTables = kasa.tables.filter(
-      (table) => orderItemCount(kasa.orders[table.id]) > 0,
+      (table) => orderItemCount(visibleOrders[table.id]) > 0,
     );
     const openTotal = kasa.tables.reduce(
-      (sum, table) => sum + orderTotal(kasa.orders[table.id]),
+      (sum, table) => sum + orderTotal(visibleOrders[table.id]),
       0,
     );
     return { openTables, openTotal };
-  }, [kasa.tables, kasa.orders]);
+  }, [kasa.tables, visibleOrders]);
 
   const summary = kasa.summary;
 
@@ -103,19 +119,32 @@ export default function KasaPanel({
     ? kasa.orders[selectedTable.id]
     : undefined;
 
+  const handleOpenTable = useCallback((tableId: string) => {
+    frozenOrdersRef.current = ordersRef.current;
+    setSelectedTableId(tableId);
+  }, []);
+
+  const handleCloseTable = useCallback(() => {
+    frozenOrdersRef.current = null;
+    setSelectedTableId(null);
+  }, []);
+
   function openReport() {
     onOpenReport();
   }
 
-  function requestRemoveTable(table: CafeTable) {
-    if (orderItemCount(kasa.orders[table.id]) > 0) {
-      toast.error(
-        `${table.label} üzerinde açık hesap var. Önce hesabı kapatın.`,
-      );
-      return;
-    }
-    setPendingRemove(table);
-  }
+  const requestRemoveTable = useCallback(
+    (table: CafeTable) => {
+      if (orderItemCount(ordersRef.current[table.id]) > 0) {
+        toast.error(
+          `${table.label} üzerinde açık hesap var. Önce hesabı kapatın.`,
+        );
+        return;
+      }
+      setPendingRemove(table);
+    },
+    [toast],
+  );
 
   const summaryCards = [
     {
@@ -305,8 +334,8 @@ export default function KasaPanel({
       <SectionMap
         section="cafe"
         tables={kasa.tables}
-        orders={kasa.orders}
-        onOpenTable={setSelectedTableId}
+        orders={visibleOrders}
+        onOpenTable={handleOpenTable}
         onAddTable={() => setAddSection("cafe")}
         onRemoveTable={requestRemoveTable}
       />
@@ -314,8 +343,8 @@ export default function KasaPanel({
       <SectionMap
         section="okey"
         tables={kasa.tables}
-        orders={kasa.orders}
-        onOpenTable={setSelectedTableId}
+        orders={visibleOrders}
+        onOpenTable={handleOpenTable}
         onAddTable={() => setAddSection("okey")}
         onRemoveTable={requestRemoveTable}
       />
@@ -357,7 +386,7 @@ export default function KasaPanel({
             );
             return null;
           }}
-          onClose={() => setSelectedTableId(null)}
+          onClose={handleCloseTable}
         />
       )}
 
@@ -504,8 +533,8 @@ function SectionMap({
                   key={table.id}
                   table={table}
                   order={orders[table.id]}
-                  onOpen={() => onOpenTable(table.id)}
-                  onRemove={() => onRemoveTable(table)}
+                  onOpen={onOpenTable}
+                  onRemove={onRemoveTable}
                 />
               ))}
             </div>
@@ -516,7 +545,7 @@ function SectionMap({
   );
 }
 
-function TableCard({
+const TableCard = memo(function TableCard({
   table,
   order,
   onOpen,
@@ -524,8 +553,8 @@ function TableCard({
 }: {
   table: CafeTable;
   order: TableOrder | undefined;
-  onOpen: () => void;
-  onRemove: () => void;
+  onOpen: (tableId: string) => void;
+  onRemove: (table: CafeTable) => void;
 }) {
   const count = orderItemCount(order);
   const total = orderTotal(order);
@@ -550,7 +579,7 @@ function TableCard({
     >
       <button
         type="button"
-        onClick={onOpen}
+        onClick={() => onOpen(table.id)}
         aria-label={`${table.label} hesabını aç`}
         className="flex w-full flex-col items-center gap-2.5 rounded-xl py-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500"
       >
@@ -610,7 +639,7 @@ function TableCard({
 
       <button
         type="button"
-        onClick={onRemove}
+        onClick={() => onRemove(table)}
         aria-label={`${table.label} masasını kaldır`}
         className="absolute right-1.5 top-1.5 rounded-full border border-espresso-700/10 bg-cream-50/90 p-2 text-espresso-600/55 opacity-60 shadow-sm transition hover:border-espresso-500/40 hover:text-espresso-800 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 sm:opacity-0 sm:group-hover:opacity-100"
       >
@@ -618,7 +647,7 @@ function TableCard({
       </button>
     </div>
   );
-}
+});
 
 function AddTableModal({
   defaultSection,

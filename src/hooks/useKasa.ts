@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  addItemToKasaState,
   buildKasaSummary,
+  changeKasaItemQuantity,
   createKasaId,
   dayBounds,
   loadKasaState,
   orderTotal,
+  removeKasaOrderLine,
   saveKasaState,
   todayKey,
   type CafeTable,
   type KasaState,
   type KasaSummary,
-  type OrderLine,
   type PaymentMethod,
   type Sale,
   type TableSection,
@@ -58,10 +60,13 @@ export function useKasa() {
   );
   const [localFallback, setLocalFallback] = useState(false);
   const stateRef = useRef(state);
+  const pendingSaveRef = useRef<KasaState | null>(null);
   const mountedRef = useRef(true);
   const loadSequence = useRef(0);
   const localFallbackRef = useRef(false);
   const realtimeConnectedRef = useRef(false);
+  const pendingMutationsRef = useRef(0);
+  const reconcileTimerRef = useRef<number | null>(null);
   const useDatabase = usingCloud && !localFallback;
 
   const bumpSalesVersion = useCallback(() => {
@@ -70,8 +75,40 @@ export function useKasa() {
 
   useEffect(() => {
     stateRef.current = state;
-    if (!useDatabase) saveKasaState(state);
+    if (useDatabase) {
+      pendingSaveRef.current = null;
+      return;
+    }
+
+    // Hızlı ürün ekleme sırasında her tıklamada tüm kasayı senkron yazmak
+    // yerine kısa bir süre bekleyip son hâli bir kez kaydet.
+    pendingSaveRef.current = state;
+    const timeout = window.setTimeout(() => {
+      pendingSaveRef.current = null;
+      saveKasaState(state);
+    }, 250);
+    return () => window.clearTimeout(timeout);
   }, [state, useDatabase]);
+
+  useEffect(() => {
+    const flush = () => {
+      const pending = pendingSaveRef.current;
+      if (!pending) return;
+      pendingSaveRef.current = null;
+      saveKasaState(pending);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      flush();
+    };
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -100,6 +137,9 @@ export function useKasa() {
         if (workspaceResult.status === "rejected") {
           throw workspaceResult.reason;
         }
+
+        // Bekleyen iyimser tıklamaları eski sunucu yanıtıyla ezme.
+        if (pendingMutationsRef.current > 0) return;
 
         localFallbackRef.current = false;
         setLocalFallback(false);
@@ -134,10 +174,31 @@ export function useKasa() {
     [usingCloud],
   );
 
+  const scheduleReconcile = useCallback(() => {
+    if (!usingCloud) return;
+    if (reconcileTimerRef.current) {
+      window.clearTimeout(reconcileTimerRef.current);
+    }
+    reconcileTimerRef.current = window.setTimeout(() => {
+      reconcileTimerRef.current = null;
+      if (pendingMutationsRef.current > 0) return;
+      void reload({ silent: true });
+    }, 400);
+  }, [reload, usingCloud]);
+
   useEffect(() => {
     if (!usingCloud) return;
     void reload();
   }, [usingCloud, reload]);
+
+  useEffect(
+    () => () => {
+      if (reconcileTimerRef.current) {
+        window.clearTimeout(reconcileTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const realtime = supabase;
@@ -292,75 +353,38 @@ export function useKasa() {
     [reload, useDatabase],
   );
 
+  const finishOptimisticMutation = useCallback(() => {
+    pendingMutationsRef.current = Math.max(
+      0,
+      pendingMutationsRef.current - 1,
+    );
+    if (pendingMutationsRef.current === 0) scheduleReconcile();
+  }, [scheduleReconcile]);
+
   const addItem = useCallback(
     async (tableId: string, product: Product): Promise<string | null> => {
-      if (useDatabase) {
-        try {
-          await addKasaOrderItem(tableId, product.id);
-          await reload({ silent: true });
-          return null;
-        } catch (addError) {
-          return kasaError(addError);
-        }
+      if (!useDatabase) {
+        setState((prev) => addItemToKasaState(prev, tableId, product));
+        return null;
       }
 
-      const addedAt = new Date().toISOString();
-
-      setState((prev) => {
-        if (!prev.tables.some((table) => table.id === tableId)) return prev;
-
-        const order = prev.orders[tableId];
-        let lines: OrderLine[];
-
-        if (!order) {
-          lines = [
-            {
-              productId: product.id,
-              name: product.name,
-              category: product.category,
-              price: product.price,
-              quantity: 1,
-              addedAt,
-            },
-          ];
-        } else {
-          const existing = order.lines.find(
-            (line) => line.productId === product.id,
-          );
-          lines = existing
-            ? order.lines.map((line) =>
-                line.productId === product.id
-                  ? { ...line, quantity: line.quantity + 1 }
-                  : line,
-              )
-            : [
-                ...order.lines,
-                {
-                  productId: product.id,
-                  name: product.name,
-                  category: product.category,
-                  price: product.price,
-                  quantity: 1,
-                  addedAt,
-                },
-              ];
-        }
-
-        return {
-          ...prev,
-          orders: {
-            ...prev.orders,
-            [tableId]: {
-              tableId,
-              openedAt: order?.openedAt ?? addedAt,
-              lines,
-            },
-          },
-        };
-      });
-      return null;
+      // Adisyonu anında güncelle; Supabase yanıtını bekleyip tüm ekranı
+      // yeniden yüklemek yerine arka planda eşitle.
+      pendingMutationsRef.current += 1;
+      setState((prev) => addItemToKasaState(prev, tableId, product));
+      try {
+        await addKasaOrderItem(tableId, product.id);
+        return null;
+      } catch (addError) {
+        setState((prev) =>
+          changeKasaItemQuantity(prev, tableId, product.id, -1),
+        );
+        return kasaError(addError);
+      } finally {
+        finishOptimisticMutation();
+      }
     },
-    [reload, useDatabase],
+    [finishOptimisticMutation, useDatabase],
   );
 
   const changeQuantity = useCallback(
@@ -369,73 +393,51 @@ export function useKasa() {
       productId: string,
       delta: number,
     ): Promise<string | null> => {
-      if (useDatabase) {
-        try {
-          await changeKasaOrderItemQuantity(tableId, productId, delta);
-          await reload({ silent: true });
-          return null;
-        } catch (quantityError) {
-          return kasaError(quantityError);
-        }
+      if (!useDatabase) {
+        setState((prev) =>
+          changeKasaItemQuantity(prev, tableId, productId, delta),
+        );
+        return null;
       }
 
-      setState((prev) => {
-        const order = prev.orders[tableId];
-        if (!order) return prev;
-
-        const lines = order.lines
-          .map((line) =>
-            line.productId === productId
-              ? { ...line, quantity: line.quantity + delta }
-              : line,
-          )
-          .filter((line) => line.quantity > 0);
-
-        const orders = { ...prev.orders };
-        if (lines.length === 0) {
-          delete orders[tableId];
-        } else {
-          orders[tableId] = { ...order, lines };
-        }
-
-        return { ...prev, orders };
-      });
-      return null;
+      pendingMutationsRef.current += 1;
+      setState((prev) =>
+        changeKasaItemQuantity(prev, tableId, productId, delta),
+      );
+      try {
+        await changeKasaOrderItemQuantity(tableId, productId, delta);
+        return null;
+      } catch (quantityError) {
+        setState((prev) =>
+          changeKasaItemQuantity(prev, tableId, productId, -delta),
+        );
+        return kasaError(quantityError);
+      } finally {
+        finishOptimisticMutation();
+      }
     },
-    [reload, useDatabase],
+    [finishOptimisticMutation, useDatabase],
   );
 
   const removeLine = useCallback(
     async (tableId: string, productId: string): Promise<string | null> => {
-      if (useDatabase) {
-        try {
-          await removeKasaOrderItem(tableId, productId);
-          await reload({ silent: true });
-          return null;
-        } catch (removeError) {
-          return kasaError(removeError);
-        }
+      if (!useDatabase) {
+        setState((prev) => removeKasaOrderLine(prev, tableId, productId));
+        return null;
       }
 
-      setState((prev) => {
-        const order = prev.orders[tableId];
-        if (!order) return prev;
-
-        const lines = order.lines.filter(
-          (line) => line.productId !== productId,
-        );
-        const orders = { ...prev.orders };
-        if (lines.length === 0) {
-          delete orders[tableId];
-        } else {
-          orders[tableId] = { ...order, lines };
-        }
-
-        return { ...prev, orders };
-      });
-      return null;
+      pendingMutationsRef.current += 1;
+      setState((prev) => removeKasaOrderLine(prev, tableId, productId));
+      try {
+        await removeKasaOrderItem(tableId, productId);
+        return null;
+      } catch (removeError) {
+        return kasaError(removeError);
+      } finally {
+        finishOptimisticMutation();
+      }
     },
-    [reload, useDatabase],
+    [finishOptimisticMutation, useDatabase],
   );
 
   const closeTable = useCallback(

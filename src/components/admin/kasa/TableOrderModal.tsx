@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   CheckCircle2,
@@ -62,7 +62,7 @@ interface Props {
   onClose: () => void;
 }
 
-function OrderProductCard({
+const OrderProductCard = memo(function OrderProductCard({
   product,
   onAdd,
 }: {
@@ -77,7 +77,7 @@ function OrderProductCard({
   const available = product.is_available;
 
   return (
-    <li>
+    <li className="pos-product-card">
       <button
         type="button"
         onClick={() => onAdd(product)}
@@ -87,9 +87,9 @@ function OrderProductCard({
             ? `${product.name} ürününü hesaba ekle`
             : `${product.name} tükendi`
         }
-        className={`group flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-white text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
+        className={`group flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-white text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-caramel-500 ${
           available
-            ? "border-espresso-700/10 hover:-translate-y-0.5 hover:border-caramel-500/45 hover:shadow-lift"
+            ? "border-espresso-700/10 hover:border-caramel-500/45"
             : "cursor-not-allowed border-espresso-700/10 opacity-70"
         }`}
       >
@@ -99,9 +99,9 @@ function OrderProductCard({
               src={imageSource}
               alt={product.name}
               loading="lazy"
-              className={`h-full w-full object-cover transition duration-500 ${
-                available ? "group-hover:scale-105" : "saturate-50"
-              }`}
+              decoding="async"
+              draggable={false}
+              className={`h-full w-full object-cover ${available ? "" : "saturate-50"}`}
               onError={() =>
                 setFailedSources((previous) =>
                   previous.includes(imageSource)
@@ -116,12 +116,12 @@ function OrderProductCard({
             </span>
           )}
 
-          <span className="absolute left-2 top-2 max-w-[82%] truncate rounded-full bg-cream-100/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-espresso-600 backdrop-blur">
+          <span className="absolute left-2 top-2 max-w-[82%] truncate rounded-full bg-cream-100/95 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-espresso-600">
             {product.category}
           </span>
 
           {!available && (
-            <span className="absolute inset-x-0 bottom-0 bg-ink/75 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-cream-100 backdrop-blur">
+            <span className="absolute inset-x-0 bottom-0 bg-ink/80 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-cream-100">
               Tükendi
             </span>
           )}
@@ -149,7 +149,7 @@ function OrderProductCard({
       </button>
     </li>
   );
-}
+});
 
 export default function TableOrderModal({
   table,
@@ -172,6 +172,33 @@ export default function TableOrderModal({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [confirming, setConfirming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDesktop, setIsDesktop] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 1024px)").matches,
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1024px)");
+    const onChange = (event: MediaQueryListEvent) =>
+      setIsDesktop(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  // Mobilde varsayılan "Menü" sekmesindeyken görünmeyen adisyon panelini
+  // hiç render etme; ilk ürün eklenirken boşuna DOM kurulmasın.
+  const showBill = isDesktop || mobilePane === "bill";
+
+  // Sepet güncellendiğinde ürün kartlarının tamamının yeniden çizilmesini
+  // önlemek için ekleme geri çağrısını sabit tutuyoruz.
+  const onAddRef = useRef(onAdd);
+  useEffect(() => {
+    onAddRef.current = onAdd;
+  }, [onAdd]);
+  const handleAdd = useCallback((product: Product) => {
+    onAddRef.current(product);
+  }, []);
 
   const isOkey = table.section === "okey";
   const total = orderTotal(order);
@@ -192,6 +219,49 @@ export default function TableOrderModal({
     [products, activeCategory, query],
   );
   const groups = useMemo(() => groupCatalog(filtered), [filtered]);
+
+  // Sepet değiştiğinde ürün kataloğunun DOM'u hiç yeniden kurulmasın.
+  const productGroups = useMemo(
+    () =>
+      groups.map((group, index) => {
+        const GroupIcon = categoryIcon(group.category);
+        return (
+          <section
+            key={group.category}
+            aria-labelledby={`order-category-${index}`}
+          >
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-espresso-700/10 text-caramel-600">
+                  <GroupIcon className="h-3.5 w-3.5" />
+                </span>
+                <h3
+                  id={`order-category-${index}`}
+                  className="font-serif text-lg text-espresso-800"
+                >
+                  {group.category}
+                </h3>
+              </div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-800/40">
+                {group.products.length} ürün
+              </span>
+            </div>
+
+            <ul className="grid grid-cols-2 gap-2.5">
+              {group.products.map((product) => (
+                <OrderProductCard
+                  key={product.id}
+                  product={product}
+                  onAdd={handleAdd}
+                />
+              ))}
+            </ul>
+          </section>
+        );
+      }),
+    [groups, handleAdd],
+  );
+
   const soldOutCount = useMemo(
     () => products.filter((product) => !product.is_available).length,
     [products],
@@ -223,7 +293,7 @@ export default function TableOrderModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="table-order-title"
-        className="flex max-h-94-safe w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-espresso-700/10 bg-cream-50 shadow-lift"
+        className="flex max-h-94-safe w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-espresso-700/10 bg-cream-50 shadow-none lg:shadow-lift"
       >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-espresso-700/10 px-5 py-4 sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
@@ -412,48 +482,12 @@ export default function TableOrderModal({
               )}
 
               {!menuLoading && filtered.length > 0 && (
-                <div className="space-y-6">
-                  {groups.map((group, index) => {
-                    const GroupIcon = categoryIcon(group.category);
-                    return (
-                      <section
-                        key={group.category}
-                        aria-labelledby={`order-category-${index}`}
-                      >
-                        <div className="mb-2.5 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-espresso-700/10 text-caramel-600">
-                              <GroupIcon className="h-3.5 w-3.5" />
-                            </span>
-                            <h3
-                              id={`order-category-${index}`}
-                              className="font-serif text-lg text-espresso-800"
-                            >
-                              {group.category}
-                            </h3>
-                          </div>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-espresso-800/40">
-                            {group.products.length} ürün
-                          </span>
-                        </div>
-
-                        <ul className="grid grid-cols-2 gap-2.5">
-                          {group.products.map((product) => (
-                            <OrderProductCard
-                              key={product.id}
-                              product={product}
-                              onAdd={onAdd}
-                            />
-                          ))}
-                        </ul>
-                      </section>
-                    );
-                  })}
-                </div>
+                <div className="space-y-6">{productGroups}</div>
               )}
             </div>
           </section>
 
+          {showBill && (
           <aside
             className={`min-h-0 flex-col bg-white/55 lg:flex ${
               mobilePane === "menu" ? "hidden" : "flex"
@@ -603,6 +637,7 @@ export default function TableOrderModal({
               </div>
             </div>
           </aside>
+          )}
         </div>
       </div>
 
